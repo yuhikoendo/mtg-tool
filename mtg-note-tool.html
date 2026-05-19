@@ -2436,11 +2436,16 @@ JSONのみで返してください:
   function renderCategoryFilters() {
     const row = document.getElementById('categoryFilterRow');
     if (!row) return;
-    // currentFilterに合わせて、対象となる連絡先を絞り込んでからカテゴリを集計
-    let baseList = [...state.contacts];
-    if (currentFilter === 'internal') baseList = baseList.filter(c => c.type === 'internal');
-    else if (currentFilter === 'external') baseList = baseList.filter(c => c.type === 'external');
-    else if (currentFilter === 'recent') {
+    // 社内フィルタ選択時は分野フィルタ行を隠す（部署タグなので絞り込み価値低い）
+    if (currentFilter === 'internal') {
+      row.innerHTML = '';
+      row.style.display = 'none';
+      return;
+    }
+    row.style.display = '';
+    // 社外のカテゴリのみ集計（社内のcategoryは混ぜない）
+    let baseList = state.contacts.filter(c => c.type === 'external');
+    if (currentFilter === 'recent') {
       const recentSet = new Set(state.recentIds.slice(0, 20));
       baseList = baseList.filter(c => recentSet.has(c.id));
     }
@@ -2565,13 +2570,11 @@ JSONのみで返してください:
   }
   function renderCandidateChip(c) {
     const sel = selectedIds.has(c.id);
-    // 社内はcategoryタグを非表示（社外は表示）
-    const showCategory = c.type === 'external' && c.category;
     return `<button class="candidate-chip ${sel ? 'selected' : ''}" onclick="toggleSelect('${c.id}')">
       <span class="badge ${c.type}"></span>
       <span>${esc(c.name)}</span>
       ${c.org ? `<span class="org-tag">${esc(c.org)}</span>` : ''}
-      ${showCategory ? `<span class="category-tag">${esc(c.category)}</span>` : ''}
+      ${c.category ? `<span class="category-tag">${esc(c.category)}</span>` : ''}
     </button>`;
   }
   function toggleSelect(id) {
@@ -2653,7 +2656,7 @@ JSONのみで返してください:
           <div class="contact-avatar ${p.type === 'external' ? 'external' : ''}">${esc(p.name.slice(0, 1))}</div>
           <div class="contact-info">
             <div class="contact-name">${esc(p.name)}${isMe ? ' <span style="color:var(--accent); font-size:11px;">(自分)</span>' : ''}</div>
-            <div class="contact-meta">${esc(p.org || '所属未設定')}${(p.type === 'external' && p.category) ? `<span class="category-tag">${esc(p.category)}</span>` : ''}</div>
+            <div class="contact-meta">${esc(p.org || '所属未設定')}${p.category ? `<span class="category-tag">${esc(p.category)}</span>` : ''}</div>
           </div>
         </div>
       </div>
