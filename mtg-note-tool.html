@@ -271,6 +271,13 @@
     font-weight: 500; margin-left: 4px;
   }
   .contact-meta .category-tag { margin-left: 6px; }
+  .me-toggle {
+    background: transparent; border: none; color: var(--label-tertiary);
+    font-size: 18px; cursor: pointer; padding: 8px 6px;
+    width: 32px; flex-shrink: 0; transition: color 0.15s;
+  }
+  .me-toggle:hover { color: var(--accent); }
+  .me-toggle.active { color: #ffcc00; }
 
   .selected-block {
     background: var(--bg-input); border-radius: var(--radius-md);
@@ -1243,6 +1250,18 @@
       ⚠ APIキーはこのブラウザのLocalStorageに保存されます。
     </div>
 
+    <div class="modal-section-title" style="margin-top: 16px;">
+      <span class="badge-sm" style="background:#444; color:#fff;">MAINTENANCE</span><span>メンテナンス</span>
+    </div>
+    <div class="group">
+      <div class="row" style="padding: 10px 14px;">
+        <button class="btn-secondary" onclick="resetLocalContacts()" style="width:100%;">📋 連絡先キャッシュをクリア → 再同期</button>
+      </div>
+      <div class="row" style="padding: 10px 14px;">
+        <button class="btn-danger" onclick="resetAllLocal()" style="width:100%;">⚠ 全LocalStorageをクリア（設定も消える）</button>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeIntegrationsModal()">閉じる</button>
       <button class="btn-primary" onclick="saveIntegrations()">保存</button>
@@ -1299,6 +1318,7 @@
       claudeKey: '',
       claudeModel: 'claude-sonnet-4-6',
       claudeEnabled: false,
+      myContactId: '', // 自分の連絡先ID（MTG時にデフォルト選択される）
     },
   };
 
@@ -2068,6 +2088,10 @@ JSONのみで返してください:
     };
     selectedIds.clear();
     suggestedIds.clear();
+    // 自分（myContactId）を自動選択
+    if (state.settings.myContactId && state.contacts.find(c => c.id === state.settings.myContactId)) {
+      selectedIds.add(state.settings.myContactId);
+    }
     document.getElementById('title').value = '';
     document.getElementById('location').value = '';
     document.getElementById('date').valueAsDate = new Date();
@@ -2190,15 +2214,31 @@ JSONのみで返してください:
   async function sheetsCall(action, params = {}, method = 'GET') {
     if (!state.settings.gasUrl || !state.settings.gasToken) throw new Error('Sheets未設定');
     const baseUrl = `${state.settings.gasUrl}?action=${action}&token=${encodeURIComponent(state.settings.gasToken)}`;
-    if (method === 'POST') {
-      return fetch(baseUrl, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(params),
-      }).then(r => r.json());
+    try {
+      let response;
+      if (method === 'POST') {
+        response = await fetch(baseUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(params),
+        });
+      } else {
+        const u = new URL(baseUrl);
+        Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+        response = await fetch(u.toString());
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('[sheetsCall] JSON parse失敗。応答body:', text.slice(0, 500));
+        throw new Error('GAS応答がJSONでない（GAS側でエラー発生中の可能性、ログ確認推奨）');
+      }
+    } catch (e) {
+      console.error('[sheetsCall] fetch失敗:', e);
+      throw e;
     }
-    const u = new URL(baseUrl);
-    Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
-    return fetch(u.toString()).then(r => r.json());
   }
   async function testSheetsConnection() {
     const url = document.getElementById('gasUrl').value.trim();
@@ -2224,30 +2264,71 @@ JSONのみで返してください:
     return t === 'internal' ? '社内' : '社外';
   }
 
+  // 日時の正規化: Sheets日本式 (2026/5/19 22:26) と ISO (2026-05-19T...) 両方対応
+  function normalizeDateString(s) {
+    if (!s) return now();
+    const str = String(s).trim();
+    if (!str) return now();
+    // ISO 形式チェック
+    if (str.includes('T') && str.includes('-')) return str;
+    // 日本式 (2026/5/19 22:26) → Date経由でISO化
+    try {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) return d.toISOString();
+    } catch (e) {}
+    return now();
+  }
+
   async function syncFromSheets() {
     if (!state.settings.sheetsEnabled) { showToast('Sheets連携を有効に', true); return; }
+    showToast('同期中...');
     try {
+      console.log('[sync] 開始 - GAS URL:', state.settings.gasUrl);
       const res = await sheetsCall('list_contacts');
-      console.log('[sync] GAS response:', res);
-      if (!res.ok) throw new Error(res.error || 'list_contacts failed');
-      if (!Array.isArray(res.data)) throw new Error('Expected array, got: ' + typeof res.data);
-      state.contacts = res.data.map(r => ({
-        id: r.id || uid(),
-        name: r.name || '',
-        org: r.org || '',
-        type: normalizeType(r.type),
-        category: r.category || '',
-        created_at: r.created_at || now(),
-        updated_at: r.updated_at || now(),
-      }));
-      console.log('[sync] Parsed contacts:', state.contacts.slice(0, 3), '... total', state.contacts.length);
+      console.log('[sync] GAS応答:', res);
+      
+      if (!res) throw new Error('GASから応答なし（タイムアウトまたはネットワーク）');
+      if (res.ok === false) throw new Error(res.error || 'GASエラー（ok=false）');
+      if (!res.ok) throw new Error('GAS応答異常 (ok=' + res.ok + ')');
+      if (!Array.isArray(res.data)) throw new Error('data配列なし: ' + typeof res.data);
+      if (res.data.length === 0) throw new Error('0件: Sheetsが空 or 列名不一致');
+      
+      // パース処理（個別行で失敗しても他を救う）
+      const parsed = [];
+      const errors = [];
+      res.data.forEach((r, i) => {
+        try {
+          if (!r.name) return; // 名前なしはスキップ
+          parsed.push({
+            id: r.id || uid(),
+            name: String(r.name).trim(),
+            org: String(r.org || '').trim(),
+            type: normalizeType(r.type),
+            category: String(r.category || '').trim(),
+            created_at: normalizeDateString(r.created_at),
+            updated_at: normalizeDateString(r.updated_at),
+          });
+        } catch (e) {
+          errors.push(`行${i + 2}: ${e.message}`);
+        }
+      });
+      
+      if (errors.length > 0) console.warn('[sync] 部分エラー:', errors);
+      
+      state.contacts = parsed;
+      console.log('[sync] パース完了:', parsed.length, '件');
+      
       saveState();
       renderContactList();
       if (currentView === 'mtg') { renderCategoryFilters(); renderCandidates(); }
-      showToast(`${state.contacts.length}件を同期`);
+      
+      const msg = errors.length > 0
+        ? `${parsed.length}件同期 (${errors.length}件エラー)`
+        : `${parsed.length}件を同期`;
+      showToast(msg);
     } catch (e) {
-      console.error('[sync] Error:', e);
-      showToast('同期失敗: ' + e.message, true);
+      console.error('[sync] 失敗:', e);
+      showToast('同期失敗: ' + (e.message || String(e)), true);
     }
   }
   async function pushContactToSheets(contact, action) {
@@ -2286,6 +2367,33 @@ JSONのみで返してください:
     document.getElementById('integrationsModal').classList.add('show');
   }
   function closeIntegrationsModal() { document.getElementById('integrationsModal').classList.remove('show'); }
+  
+  function resetLocalContacts() {
+    if (!confirm('ローカルの連絡先キャッシュをクリアしてSheetsから再同期しますか？\n（Sheetsのデータは消えません）')) return;
+    state.contacts = [];
+    selectedIds.clear();
+    suggestedIds.clear();
+    saveState();
+    renderContactList();
+    renderCategoryFilters();
+    renderCandidates();
+    showToast('キャッシュクリア → 同期中...');
+    setTimeout(() => syncFromSheets(), 300);
+  }
+  
+  function resetAllLocal() {
+    if (!confirm('⚠ 全てのLocalStorageを削除します。\n設定（GAS URL/Token、APIキー、Vault設定など）も消えます。\nよろしいですか？')) return;
+    if (!confirm('本当に消しますか？この操作は取り消せません。')) return;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY_OLD);
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem('mtgtool_v7');
+      localStorage.removeItem('mtgtool_v6');
+    } catch (e) { console.error(e); }
+    showToast('全クリア完了。ページをリロードします...');
+    setTimeout(() => location.reload(), 1000);
+  }
   function saveIntegrations() {
     state.settings.gasUrl = document.getElementById('gasUrl').value.trim();
     state.settings.gasToken = document.getElementById('gasToken').value.trim();
@@ -2314,12 +2422,14 @@ JSONのみで返してください:
   // ===== CANDIDATES =====
   function setFilter(f) {
     currentFilter = f;
+    showAllCandidates = false;
     document.querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
     renderCategoryFilters();
     renderCandidates();
   }
   function setCategoryFilter(cat) {
     currentCategoryFilter = cat;
+    showAllCandidates = false;
     renderCategoryFilters();
     renderCandidates();
   }
@@ -2372,14 +2482,56 @@ JSONのみで返してください:
     );
     return list;
   }
+  let showAllCandidates = false;
+  function toggleShowAll() {
+    showAllCandidates = !showAllCandidates;
+    renderCandidates();
+  }
   function renderCandidates() {
-    const list = getFilteredContacts();
     const panel = document.getElementById('candidatePanel');
     if (!panel) return;
+    const q = document.getElementById('searchInput')?.value.trim() || '';
+    const hasSearchOrFilter = !!q
+      || currentFilter !== 'all'
+      || currentCategoryFilter !== 'all';
+    
+    // 初期表示モード: 検索もフィルタもなく、明示的に全件表示でもない
+    if (!hasSearchOrFilter && !showAllCandidates) {
+      const recents = state.recentIds.slice(0, 12)
+        .map(id => state.contacts.find(c => c.id === id))
+        .filter(Boolean);
+      
+      let html = '';
+      if (recents.length > 0) {
+        html += `<div class="candidate-section">
+          <div class="candidate-title">
+            <span>最近選んだ人（${recents.length}）</span>
+          </div>
+          <div class="candidate-list">${recents.map(renderCandidateChip).join('')}</div>
+        </div>`;
+      } else {
+        html += `<div class="empty" style="padding: 20px;">
+          <div style="color: var(--label-secondary); font-size: 13px; margin-bottom: 10px;">
+            検索ボックス・フィルタ・分野タグから参加者を選んでください
+          </div>
+        </div>`;
+      }
+      html += `<div style="text-align: center; margin-top: 12px;">
+        <button class="btn-secondary" onclick="toggleShowAll()" style="font-size: 13px;">
+          📋 すべて表示（${state.contacts.length}名）
+        </button>
+      </div>`;
+      panel.innerHTML = html;
+      return;
+    }
+    
+    // 通常モード: 検索 or フィルタの結果 or 全表示
+    const list = getFilteredContacts();
     if (list.length === 0) {
       panel.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div>該当なし</div></div>`;
       return;
     }
+    
     if (currentFilter === 'all' || currentFilter === 'external') {
       const byOrg = {};
       list.forEach(c => {
@@ -2387,10 +2539,14 @@ JSONのみで返してください:
         if (!byOrg[key]) byOrg[key] = [];
         byOrg[key].push(c);
       });
-      const recents = state.recentIds.slice(0, 8).map(id => list.find(c => c.id === id)).filter(Boolean);
       let html = '';
-      if (recents.length && currentFilter !== 'recent') {
-        html += `<div class="candidate-section"><div class="candidate-title"><span>Recents</span></div><div class="candidate-list">${recents.map(renderCandidateChip).join('')}</div></div>`;
+      // 「すべて表示」モード中は畳むボタンを表示
+      if (showAllCandidates && !hasSearchOrFilter) {
+        html += `<div style="text-align: center; margin-bottom: 10px;">
+          <button class="btn-secondary" onclick="toggleShowAll()" style="font-size: 12px;">
+            ⬆ 一覧を畳む
+          </button>
+        </div>`;
       }
       Object.keys(byOrg).sort().forEach(org => {
         const items = byOrg[org];
@@ -2409,11 +2565,13 @@ JSONのみで返してください:
   }
   function renderCandidateChip(c) {
     const sel = selectedIds.has(c.id);
+    // 社内はcategoryタグを非表示（社外は表示）
+    const showCategory = c.type === 'external' && c.category;
     return `<button class="candidate-chip ${sel ? 'selected' : ''}" onclick="toggleSelect('${c.id}')">
       <span class="badge ${c.type}"></span>
       <span>${esc(c.name)}</span>
       ${c.org ? `<span class="org-tag">${esc(c.org)}</span>` : ''}
-      ${c.category ? `<span class="category-tag">${esc(c.category)}</span>` : ''}
+      ${showCategory ? `<span class="category-tag">${esc(c.category)}</span>` : ''}
     </button>`;
   }
   function toggleSelect(id) {
@@ -2486,15 +2644,32 @@ JSONのみで返してください:
       c.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div>該当なし</div></div>`;
       return;
     }
-    c.innerHTML = list.map(p => `
-      <div class="contact-card" onclick="openContactModal('${p.id}')">
-        <div class="contact-avatar ${p.type === 'external' ? 'external' : ''}">${esc(p.name.slice(0, 1))}</div>
-        <div class="contact-info">
-          <div class="contact-name">${esc(p.name)}</div>
-          <div class="contact-meta">${esc(p.org || '所属未設定')}${p.category ? `<span class="category-tag">${esc(p.category)}</span>` : ''}</div>
+    c.innerHTML = list.map(p => {
+      const isMe = state.settings.myContactId === p.id;
+      return `
+      <div class="contact-card">
+        <button class="me-toggle ${isMe ? 'active' : ''}" onclick="event.stopPropagation(); toggleMyContact('${p.id}')" title="${isMe ? '自分（クリックで解除）' : '自分に設定'}">${isMe ? '★' : '☆'}</button>
+        <div onclick="openContactModal('${p.id}')" style="display:flex; flex:1; align-items:center; gap:12px; cursor:pointer;">
+          <div class="contact-avatar ${p.type === 'external' ? 'external' : ''}">${esc(p.name.slice(0, 1))}</div>
+          <div class="contact-info">
+            <div class="contact-name">${esc(p.name)}${isMe ? ' <span style="color:var(--accent); font-size:11px;">(自分)</span>' : ''}</div>
+            <div class="contact-meta">${esc(p.org || '所属未設定')}${(p.type === 'external' && p.category) ? `<span class="category-tag">${esc(p.category)}</span>` : ''}</div>
+          </div>
         </div>
       </div>
-    `).join('');
+    `;}).join('');
+  }
+  function toggleMyContact(id) {
+    if (state.settings.myContactId === id) {
+      state.settings.myContactId = '';
+      showToast('自分の設定を解除');
+    } else {
+      state.settings.myContactId = id;
+      const c = state.contacts.find(x => x.id === id);
+      showToast(`「${c?.name || ''}」を自分に設定`);
+    }
+    saveState();
+    renderContactList();
   }
   function openContactModal(id = null) {
     editingContactId = id;
@@ -2690,6 +2865,10 @@ JSONのみで返してください:
   })();
   loadState();
   updateAllStatus();
+  // 自分（myContactId）を初期選択
+  if (state.settings.myContactId && state.contacts.find(c => c.id === state.settings.myContactId)) {
+    selectedIds.add(state.settings.myContactId);
+  }
   renderSelected();
   renderCategoryFilters();
   renderCandidates();
