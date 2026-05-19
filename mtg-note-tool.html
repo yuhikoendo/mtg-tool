@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>議事録</title>
+<title>議事録 v9</title>
 <style>
   :root {
     --bg: #f5f5f7;
@@ -24,6 +24,7 @@
     --purple: #5856d6;
     --internal: #007aff;
     --external: #ff9500;
+    --recording: #ff3b30;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
@@ -71,54 +72,31 @@
     pointer-events: none;
     z-index: 0;
   }
+  body.recording::before {
+    background: linear-gradient(180deg, rgba(255,59,48,0.05) 0%, rgba(255,149,0,0.03) 50%, transparent 100%);
+  }
   .nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: sticky; top: 0; z-index: 100;
     background: var(--bg-elevated);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     border-bottom: 0.5px solid var(--separator);
     padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
   }
   .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.022em; }
   .nav-subtitle { font-size: 12px; color: var(--label-secondary); font-weight: 400; margin-top: 1px; }
   .nav-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .nav-btn {
-    background: var(--bg-input);
-    border: none;
-    color: var(--accent);
-    padding: 7px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s ease;
-  }
-  .nav-btn:hover { background: var(--bg-input-focus); }
   .tab-switcher {
-    display: flex;
-    background: var(--bg-input);
-    border-radius: 10px;
-    padding: 2px;
-    gap: 2px;
+    display: flex; background: var(--bg-input);
+    border-radius: 10px; padding: 2px; gap: 2px;
   }
   .tab-switcher button {
-    background: transparent;
-    border: none;
-    color: var(--label);
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
+    background: transparent; border: none; color: var(--label);
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
     transition: all 0.2s;
   }
   .tab-switcher button.active {
@@ -127,634 +105,479 @@
   }
   .status-group { display: flex; gap: 4px; align-items: center; }
   .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--bg-input);
-    padding: 6px 12px;
-    border-radius: 14px;
-    font-size: 12px;
-    color: var(--label-secondary);
-    font-weight: 500;
-    cursor: pointer;
-    max-width: 180px;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-input); padding: 6px 12px;
+    border-radius: 14px; font-size: 12px;
+    color: var(--label-secondary); font-weight: 500;
+    cursor: pointer; max-width: 200px;
   }
   .status-pill:hover { background: var(--bg-input-focus); }
   .status-pill .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--warning);
-    flex-shrink: 0;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--warning); flex-shrink: 0;
   }
   .status-pill.connected .dot { background: var(--success); }
   .status-pill span:not(.dot) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-
   .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 24px;
-    position: relative;
-    z-index: 1;
-  }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-  @media (min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; gap: 24px; } }
-  .card {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    box-shadow: var(--shadow-card);
-    border: 0.5px solid var(--separator);
-  }
-  .card-header {
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 0.5px solid var(--separator);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .card-title { font-size: 22px; font-weight: 700; letter-spacing: -0.022em; }
-  .card-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--accent), var(--purple));
-    color: white;
+    max-width: 1200px; margin: 0 auto; padding: 24px;
+    position: relative; z-index: 1;
   }
   .view { display: none; }
   .view.active { display: block; }
 
-  .voice-import-card {
-    background: linear-gradient(135deg, rgba(88,86,214,0.06), rgba(0,122,255,0.04));
-    border: 1px solid rgba(88,86,214,0.15);
-    border-radius: var(--radius-lg);
-    padding: 18px;
-    margin-bottom: 20px;
+  .phase { display: none; }
+  .phase.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  .voice-import-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .voice-import-icon {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, var(--purple), var(--accent));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    flex-shrink: 0;
-  }
-  .voice-import-title { font-size: 15px; font-weight: 600; }
-  .voice-import-sub { font-size: 12px; color: var(--label-secondary); margin-top: 2px; }
-  .voice-textarea {
-    width: 100%;
-    background: var(--bg-card);
-    border: 0.5px solid var(--separator-strong);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 13px;
-    color: var(--label);
-    resize: vertical;
-    min-height: 100px;
-    outline: none;
-    line-height: 1.6;
-    margin-bottom: 10px;
-  }
-  .voice-textarea:focus { border-color: var(--accent); }
-  .voice-textarea::placeholder { color: var(--label-tertiary); }
-  .voice-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn-ai {
-    background: linear-gradient(135deg, var(--purple), var(--accent));
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 10px 20px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    flex: 1;
-    min-width: 140px;
-    transition: opacity 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .btn-ai:hover { opacity: 0.92; }
-  .btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-ai.loading::before {
-    content: '';
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .group {
+  .phase-progress {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 20px; padding: 14px 18px;
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    border: 0.5px solid var(--separator);
+  }
+  .phase-step {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500;
+    color: var(--label-tertiary);
+  }
+  .phase-step.active { color: var(--accent); font-weight: 600; }
+  .phase-step.done { color: var(--success); }
+  .phase-step-dot {
+    width: 22px; height: 22px; border-radius: 50%;
     background: var(--bg-input);
-    border-radius: var(--radius-md);
-    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .phase-step.active .phase-step-dot { background: var(--accent); color: white; }
+  .phase-step.done .phase-step-dot { background: var(--success); color: white; }
+  .phase-step-line {
+    flex: 1; height: 2px; background: var(--separator);
+    min-width: 20px;
+  }
+  .phase-step.done + .phase-step-line { background: var(--success); }
+
+  .card {
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    padding: 20px; box-shadow: var(--shadow-card);
+    border: 0.5px solid var(--separator);
     margin-bottom: 16px;
   }
+  .card-title {
+    font-size: 20px; font-weight: 700; letter-spacing: -0.022em;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .group {
+    background: var(--bg-input); border-radius: var(--radius-md);
+    overflow: hidden; margin-bottom: 16px;
+  }
   .group-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--label-secondary);
-    letter-spacing: 0.05em;
-    padding: 0 12px 6px;
-    margin-top: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--label-secondary); letter-spacing: 0.05em;
+    padding: 0 12px 6px; margin-top: 18px;
+    display: flex; align-items: center; justify-content: space-between;
   }
   .group-label-action {
-    text-transform: none;
-    font-size: 12px;
-    color: var(--accent);
-    cursor: pointer;
-    font-weight: 500;
-    letter-spacing: 0;
-    background: none;
-    border: none;
-    font-family: inherit;
+    text-transform: none; font-size: 12px; color: var(--accent);
+    cursor: pointer; font-weight: 500; letter-spacing: 0;
+    background: none; border: none; font-family: inherit;
   }
   .group-label-action:hover { text-decoration: underline; }
   .row {
-    display: flex;
-    align-items: center;
-    padding: 11px 14px;
-    border-bottom: 0.5px solid var(--separator);
-    gap: 12px;
-    min-height: 44px;
+    display: flex; align-items: center;
+    padding: 11px 14px; border-bottom: 0.5px solid var(--separator);
+    gap: 12px; min-height: 44px;
   }
   .row:last-child { border-bottom: none; }
   .row-label {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--label);
-    flex-shrink: 0;
-    min-width: 100px;
+    font-size: 14px; font-weight: 400; color: var(--label);
+    flex-shrink: 0; min-width: 100px;
   }
   .row-input, .row-select {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--label);
-    font-size: 15px;
-    font-family: inherit;
-    text-align: right;
-    outline: none;
+    flex: 1; background: transparent; border: none; color: var(--label);
+    font-size: 15px; font-family: inherit;
+    text-align: right; outline: none;
   }
   .row-input::placeholder { color: var(--label-tertiary); }
   .row-select {
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
+    appearance: none; -webkit-appearance: none; cursor: pointer;
     padding-right: 20px;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='rgba(60,60,67,0.6)' d='M8 11.5L3.5 7h9z'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right center;
-    background-size: 12px;
+    background-repeat: no-repeat; background-position: right center; background-size: 12px;
   }
   @media (prefers-color-scheme: dark) {
     .row-select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='rgba(235,235,245,0.6)' d='M8 11.5L3.5 7h9z'/></svg>"); }
   }
   .row .toggle {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 44px;
-    height: 26px;
-    background: var(--separator-strong);
-    border-radius: 26px;
-    position: relative;
-    cursor: pointer;
-    transition: background 0.2s;
+    appearance: none; -webkit-appearance: none;
+    width: 44px; height: 26px;
+    background: var(--separator-strong); border-radius: 26px;
+    position: relative; cursor: pointer; transition: background 0.2s;
   }
   .row .toggle:checked { background: var(--success); }
   .row .toggle::before {
-    content: '';
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    background: white;
-    border-radius: 50%;
-    top: 2px; left: 2px;
+    content: ''; position: absolute;
+    width: 22px; height: 22px; background: white;
+    border-radius: 50%; top: 2px; left: 2px;
     transition: left 0.2s;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
   .row .toggle:checked::before { left: 20px; }
 
   .search-bar {
-    background: var(--bg-input);
-    border-radius: 10px;
+    background: var(--bg-input); border-radius: 10px;
     padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
     margin-bottom: 12px;
   }
   .search-bar svg { color: var(--label-secondary); flex-shrink: 0; }
   .search-bar input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    font-size: 14px;
-    font-family: inherit;
-    color: var(--label);
+    flex: 1; background: transparent; border: none; outline: none;
+    font-size: 14px; font-family: inherit; color: var(--label);
   }
   .search-bar input::placeholder { color: var(--label-tertiary); }
-
   .filter-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-    overflow-x: auto;
-    padding-bottom: 4px;
+    display: flex; gap: 6px; margin-bottom: 12px;
+    overflow-x: auto; padding-bottom: 4px;
   }
   .filter-chip {
-    background: var(--bg-input);
-    border: none;
-    color: var(--label);
-    padding: 6px 12px;
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    transition: all 0.15s;
+    background: var(--bg-input); border: none; color: var(--label);
+    padding: 6px 12px; border-radius: 14px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    white-space: nowrap; transition: all 0.15s;
   }
   .filter-chip.active { background: var(--accent); color: white; }
+  .filter-row.cat .filter-chip {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--label-secondary);
+    font-size: 12px; padding: 4px 10px; border-radius: 12px;
+  }
+  .filter-row.cat .filter-chip.active {
+    background: var(--accent); border-color: var(--accent); color: white;
+  }
+  .filter-row.cat .filter-chip-count {
+    opacity: 0.7; margin-left: 3px; font-size: 10px;
+  }
+  .category-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 8px;
+    background: rgba(0, 122, 255, 0.12); color: var(--accent);
+    font-weight: 500; margin-left: 4px;
+  }
+  .contact-meta .category-tag { margin-left: 6px; }
 
   .selected-block {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    margin-bottom: 12px;
-    min-height: 60px;
+    background: var(--bg-input); border-radius: var(--radius-md);
+    padding: 12px; margin-bottom: 12px; min-height: 60px;
   }
   .selected-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 12px;
-    color: var(--label-secondary);
-    font-weight: 500;
+    display: flex; justify-content: space-between; margin-bottom: 8px;
+    font-size: 12px; color: var(--label-secondary); font-weight: 500;
   }
   .selected-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .person-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 10px 5px 12px;
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.15s;
-    font-family: inherit;
-    border: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px 5px 12px; border-radius: 14px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; user-select: none;
+    transition: all 0.15s; font-family: inherit; border: none;
   }
   .person-chip.internal { background: rgba(0, 122, 255, 0.12); color: var(--internal); }
   .person-chip.external { background: rgba(255, 149, 0, 0.15); color: var(--external); }
   .person-chip:hover { transform: translateY(-1px); }
   .person-chip .org { font-size: 11px; opacity: 0.75; margin-left: 2px; }
   .person-chip .remove {
-    background: rgba(0,0,0,0.1);
-    border-radius: 50%;
+    background: rgba(0,0,0,0.1); border-radius: 50%;
     width: 16px; height: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    margin-left: 2px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; margin-left: 2px;
   }
-  @media (prefers-color-scheme: dark) {
-    .person-chip .remove { background: rgba(255,255,255,0.15); }
-  }
+  @media (prefers-color-scheme: dark) { .person-chip .remove { background: rgba(255,255,255,0.15); } }
   .selected-empty { color: var(--label-tertiary); font-size: 13px; padding: 6px; }
 
   .candidate-section { margin-bottom: 16px; }
   .candidate-title {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 12px; font-weight: 600;
     color: var(--label-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 6px;
-    padding: 0 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 6px; padding: 0 4px;
+    display: flex; justify-content: space-between; align-items: center;
   }
   .candidate-add-all {
-    text-transform: none;
-    font-size: 12px;
-    color: var(--accent);
-    cursor: pointer;
-    font-weight: 500;
-    letter-spacing: 0;
-    background: none;
-    border: none;
-    font-family: inherit;
+    text-transform: none; font-size: 12px; color: var(--accent);
+    cursor: pointer; font-weight: 500; letter-spacing: 0;
+    background: none; border: none; font-family: inherit;
   }
   .candidate-add-all:hover { text-decoration: underline; }
   .candidate-list { display: flex; flex-wrap: wrap; gap: 6px; }
   .candidate-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 10px;
-    background: var(--bg-card);
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 10px; background: var(--bg-card);
     border: 0.5px solid var(--separator-strong);
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.15s;
-    font-family: inherit;
-    color: var(--label);
+    border-radius: 14px; font-size: 13px; font-weight: 500;
+    cursor: pointer; user-select: none;
+    transition: all 0.15s; font-family: inherit; color: var(--label);
   }
   .candidate-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
   .candidate-chip.selected { background: var(--accent); color: white; border-color: var(--accent); }
-  .candidate-chip.suggested {
-    border-color: var(--purple);
-    background: rgba(88,86,214,0.08);
-  }
+  .candidate-chip.suggested { border-color: var(--purple); background: rgba(88,86,214,0.08); }
   .candidate-chip .org-tag { font-size: 10px; opacity: 0.6; margin-left: 3px; }
   .candidate-chip .badge { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
   .candidate-chip .badge.internal { background: var(--internal); }
   .candidate-chip .badge.external { background: var(--external); }
 
-  .text-block {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
-    padding: 12px 14px;
-    margin-bottom: 12px;
+  /* Phase 1: Prep */
+  .start-button-area {
+    text-align: center; padding: 24px 0 12px;
   }
-  .text-block-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--label);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  .btn-start {
+    background: linear-gradient(135deg, var(--success), #30d158);
+    color: white; border: none; border-radius: 28px;
+    padding: 18px 48px; font-size: 17px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 20px rgba(52, 199, 89, 0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-flex; align-items: center; gap: 10px;
   }
-  .text-block textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: var(--label);
-    font-family: inherit;
-    font-size: 15px;
-    line-height: 1.5;
-    resize: vertical;
-    min-height: 60px;
-    outline: none;
+  .btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(52, 199, 89, 0.45);
   }
-  .text-block textarea::placeholder { color: var(--label-tertiary); }
+  .btn-start:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    transform: none; box-shadow: none;
+  }
 
-  details.section { margin-bottom: 12px; }
-  details.section summary {
-    cursor: pointer;
-    user-select: none;
-    list-style: none;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--label-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 6px 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  /* Phase 2: Recording */
+  .recording-card {
+    background: linear-gradient(135deg, rgba(255,59,48,0.08), rgba(255,149,0,0.05));
+    border: 1px solid rgba(255,59,48,0.2);
+    border-radius: var(--radius-lg);
+    padding: 24px; margin-bottom: 16px;
+    text-align: center;
   }
-  details.section summary::-webkit-details-marker { display: none; }
-  details.section summary::before {
-    content: '';
-    width: 0; height: 0;
-    border-left: 4px solid var(--label-tertiary);
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    transition: transform 0.2s ease;
+  .recording-header {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; margin-bottom: 12px;
   }
-  details.section[open] summary::before { transform: rotate(90deg); }
+  .recording-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--recording);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+  }
+  .recording-label { font-size: 14px; font-weight: 600; color: var(--recording); }
+  .elapsed-time {
+    font-size: 48px; font-weight: 200; letter-spacing: -0.04em;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    margin: 12px 0; color: var(--label);
+  }
+  .recording-reminder {
+    font-size: 13px; color: var(--label-secondary);
+    background: var(--bg-card); border-radius: var(--radius-md);
+    padding: 10px 16px; margin: 12px auto 0;
+    display: inline-block;
+  }
+  .memo-area {
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    border: 1px solid var(--separator);
+    padding: 16px;
+  }
+  .memo-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .memo-title { font-size: 15px; font-weight: 600; }
+  .memo-hint { font-size: 11px; color: var(--label-tertiary); }
+  .memo-toolbar {
+    display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .memo-btn {
+    background: var(--bg-input); border: none;
+    color: var(--label); padding: 6px 12px;
+    border-radius: 8px; font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+  }
+  .memo-btn:hover { background: var(--bg-input-focus); }
+  .memo-textarea {
+    width: 100%; min-height: 280px;
+    background: var(--bg-input); border: none;
+    border-radius: var(--radius-md); padding: 14px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 13px; line-height: 1.8; color: var(--label);
+    resize: vertical; outline: none;
+  }
+  .memo-textarea:focus { background: var(--bg-input-focus); }
+  .stop-button-area {
+    text-align: center; margin-top: 16px;
+  }
+  .btn-stop {
+    background: linear-gradient(135deg, var(--destructive), #ff6b6b);
+    color: white; border: none; border-radius: 28px;
+    padding: 16px 40px; font-size: 16px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
+    transition: transform 0.15s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-stop:hover { transform: translateY(-2px); }
 
-  .todo-item {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    margin-bottom: 8px;
-    display: grid;
-    gap: 8px;
+  /* Phase 3: Processing */
+  .processing-card {
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    padding: 32px; text-align: center;
+    border: 1px solid var(--separator);
   }
-  .todo-item input, .todo-item select {
-    background: var(--bg-card);
-    border: 0.5px solid var(--separator);
-    border-radius: var(--radius-sm);
-    padding: 8px 12px;
-    font-family: inherit;
-    font-size: 14px;
-    color: var(--label);
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .todo-item select {
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-    padding-right: 24px;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='rgba(60,60,67,0.6)' d='M8 11.5L3.5 7h9z'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 10px;
-  }
-  @media (prefers-color-scheme: dark) {
-    .todo-item select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='rgba(235,235,245,0.6)' d='M8 11.5L3.5 7h9z'/></svg>"); }
-  }
-  .todo-item input:focus, .todo-item select:focus { border-color: var(--accent); }
-  .todo-meta-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
-  .todo-remove {
-    width: 32px; height: 32px;
-    background: transparent;
-    border: none;
+  .processing-spinner {
+    width: 48px; height: 48px;
+    border: 4px solid var(--bg-input);
+    border-top-color: var(--accent);
     border-radius: 50%;
-    color: var(--destructive);
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
   }
-  .todo-remove:hover { background: rgba(255, 59, 48, 0.1); }
-  .add-todo {
-    width: 100%;
-    background: transparent;
-    border: 1px dashed var(--separator-strong);
-    border-radius: var(--radius-md);
-    color: var(--accent);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 4px;
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .processing-steps {
+    text-align: left; max-width: 400px;
+    margin: 24px auto 0;
   }
-  .add-todo:hover { background: var(--bg-input); border-style: solid; }
-
-  .btn-secondary {
+  .processing-step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; font-size: 14px; color: var(--label-secondary);
+  }
+  .processing-step.done { color: var(--success); font-weight: 500; }
+  .processing-step.active { color: var(--accent); font-weight: 500; }
+  .processing-icon {
+    width: 20px; height: 20px; border-radius: 50%;
     background: var(--bg-input);
-    color: var(--accent);
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--label-tertiary);
   }
-  .btn-secondary:hover { background: var(--bg-input-focus); }
-  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .processing-step.done .processing-icon { background: var(--success); color: white; }
+  .processing-step.active .processing-icon { background: var(--accent); color: white; }
 
+  /* Phase 4: Review */
   .preview-section { margin-bottom: 20px; }
   .preview-section:last-child { margin-bottom: 0; }
   .preview-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13px; font-weight: 600;
     color: var(--label-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    text-transform: uppercase; letter-spacing: 0.04em;
     margin-bottom: 4px;
   }
   .preview-hint { font-size: 12px; color: var(--label-tertiary); margin-bottom: 10px; }
-  .task-card {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
-    padding: 14px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .task-number {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .task-body { flex: 1; min-width: 0; }
-  .task-name {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--label);
-    margin-bottom: 6px;
-    word-break: break-word;
-  }
-  .task-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-  .pill {
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 10px;
-    background: var(--bg-card);
-    color: var(--label-secondary);
-    font-weight: 500;
-  }
-  .pill.assigned { background: rgba(52, 199, 89, 0.15); color: var(--success); }
-  .pill.due { background: rgba(255, 149, 0, 0.15); color: var(--warning); }
-  .pill.project { background: rgba(0, 122, 255, 0.15); color: var(--accent); }
-  .pill.muted { opacity: 0.6; }
   .code-output {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
+    background: var(--bg-input); border-radius: var(--radius-md);
     padding: 14px;
     font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
-    font-size: 12px;
-    line-height: 1.7;
-    color: var(--label);
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 380px;
-    overflow-y: auto;
+    font-size: 12px; line-height: 1.7; color: var(--label);
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 380px; overflow-y: auto;
     border: 0.5px solid var(--separator);
   }
-  .empty {
-    text-align: center;
-    padding: 32px 20px;
-    color: var(--label-tertiary);
-    font-size: 14px;
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .btn-secondary {
+    background: var(--bg-input); color: var(--accent);
+    border: none; border-radius: var(--radius-md);
+    padding: 12px; font-family: inherit;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: background 0.15s; flex: 1; min-width: 120px;
   }
-  .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.3; }
+  .btn-secondary:hover { background: var(--bg-input-focus); }
+  .btn-primary {
+    flex: 1; background: var(--accent); color: white;
+    border: none; border-radius: var(--radius-md);
+    padding: 12px; font-family: inherit;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    min-width: 100px;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-cancel {
+    flex: 1; background: var(--bg-input); color: var(--label);
+    border: none; border-radius: var(--radius-md);
+    padding: 12px; font-family: inherit;
+    font-size: 14px; font-weight: 500; cursor: pointer; min-width: 80px;
+  }
+  .btn-danger {
+    background: var(--destructive); color: white;
+    border: none; border-radius: var(--radius-md);
+    padding: 12px; font-family: inherit;
+    font-size: 14px; font-weight: 500; cursor: pointer; flex: 1;
+  }
+  .btn-success {
+    background: var(--success); color: white;
+    border: none; border-radius: var(--radius-md);
+    padding: 12px 20px; font-family: inherit;
+    font-size: 14px; font-weight: 600; cursor: pointer; flex: 1;
+  }
+
+  .asana-rec {
+    background: var(--bg-input); border-radius: var(--radius-md);
+    padding: 14px; margin-bottom: 8px;
+    border-left: 3px solid var(--purple);
+  }
+  .asana-rec-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font-size: 13px; font-weight: 600;
+  }
+  .asana-rec-icon {
+    width: 20px; height: 20px; border-radius: 4px;
+    background: var(--purple); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  .asana-rec-task {
+    font-size: 14px; font-weight: 500; color: var(--label);
+    margin-bottom: 6px;
+  }
+  .asana-rec-action-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .asana-action-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 8px; border-radius: 8px;
+  }
+  .asana-action-badge.new { background: rgba(52, 199, 89, 0.15); color: var(--success); }
+  .asana-action-badge.update { background: rgba(0, 122, 255, 0.15); color: var(--accent); }
+  .asana-action-badge.comment { background: rgba(88, 86, 214, 0.15); color: var(--purple); }
+  .asana-action-badge.skip { background: var(--bg-card); color: var(--label-tertiary); }
+  .asana-rec-reason {
+    font-size: 12px; color: var(--label-secondary);
+    margin-bottom: 4px; line-height: 1.4;
+  }
+  .asana-rec-confidence {
+    font-size: 11px; color: var(--label-tertiary);
+  }
 
   .save-result {
     background: rgba(52, 199, 89, 0.08);
     border: 1px solid rgba(52, 199, 89, 0.25);
     border-radius: var(--radius-md);
-    padding: 14px;
-    margin-bottom: 16px;
-    font-size: 13px;
+    padding: 14px; margin-bottom: 16px; font-size: 13px;
   }
   .save-result-title {
-    font-weight: 600;
-    color: var(--success);
+    font-weight: 600; color: var(--success);
     margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .save-vault-section {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(52, 199, 89, 0.2);
-  }
-  .save-vault-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
-  .save-vault-name {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--label);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
   }
   .save-result-list { list-style: none; padding: 0; margin: 0; }
   .save-result-list li {
-    padding: 3px 0;
-    font-family: 'SF Mono', monospace;
-    font-size: 11px;
-    color: var(--label-secondary);
+    padding: 3px 0; font-family: 'SF Mono', monospace;
+    font-size: 11px; color: var(--label-secondary);
   }
   .save-result-list li::before {
-    content: '✓ ';
-    color: var(--success);
-    font-weight: 600;
-    font-family: inherit;
+    content: '✓ '; color: var(--success);
+    font-weight: 600; font-family: inherit;
   }
   .save-result.warning {
     background: rgba(255, 149, 0, 0.08);
@@ -763,238 +586,148 @@
   .save-result.warning .save-result-title { color: var(--warning); }
   .save-result-list li.fail::before { content: '✗ '; color: var(--destructive); }
 
+  .pill {
+    font-size: 11px; padding: 3px 8px; border-radius: 10px;
+    background: var(--bg-card); color: var(--label-secondary);
+    font-weight: 500;
+  }
+  .pill.assigned { background: rgba(52, 199, 89, 0.15); color: var(--success); }
+  .pill.due { background: rgba(255, 149, 0, 0.15); color: var(--warning); }
+
+  .empty {
+    text-align: center; padding: 32px 20px;
+    color: var(--label-tertiary); font-size: 14px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.3; }
+
+  /* Contacts */
   .contact-list { display: flex; flex-direction: column; gap: 6px; }
   .contact-card {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
+    background: var(--bg-input); border-radius: var(--radius-md);
     padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    transition: background 0.15s;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: background 0.15s;
   }
   .contact-card:hover { background: var(--bg-input-focus); }
   .contact-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), var(--purple));
     color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
-    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
   }
   .contact-avatar.external { background: linear-gradient(135deg, var(--external), #ffb340); }
   .contact-info { flex: 1; min-width: 0; }
   .contact-name { font-size: 15px; font-weight: 500; color: var(--label); margin-bottom: 2px; }
   .contact-meta {
-    font-size: 12px;
-    color: var(--label-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 12px; color: var(--label-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
+  /* Modals */
   .modal-backdrop {
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
     background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     z-index: 300;
-    display: none;
-    align-items: center;
-    justify-content: center;
+    display: none; align-items: center; justify-content: center;
     padding: 24px;
   }
   .modal-backdrop.show { display: flex; }
   .modal {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    width: 100%;
-    max-width: 520px;
-    padding: 24px;
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    width: 100%; max-width: 520px; padding: 24px;
     box-shadow: var(--shadow-modal);
-    max-height: 85vh;
-    overflow-y: auto;
+    max-height: 85vh; overflow-y: auto;
   }
   .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
   .modal-sub { font-size: 13px; color: var(--label-secondary); margin-bottom: 18px; }
   .modal-footer { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
-  .btn-primary {
-    flex: 1;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    min-width: 100px;
-  }
-  .btn-primary:hover { background: var(--accent-hover); }
-  .btn-cancel {
-    flex: 1;
-    background: var(--bg-input);
-    color: var(--label);
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    min-width: 80px;
-  }
-  .btn-danger {
-    background: var(--destructive);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 12px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    flex: 1;
-  }
   .info-box {
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
-    padding: 12px 14px;
-    font-size: 12px;
-    color: var(--label-secondary);
-    line-height: 1.5;
+    background: var(--bg-input); border-radius: var(--radius-md);
+    padding: 12px 14px; font-size: 12px;
+    color: var(--label-secondary); line-height: 1.5;
     margin-bottom: 12px;
   }
-  .info-box.warn {
-    background: rgba(255, 149, 0, 0.08);
-    color: var(--warning);
-  }
+  .info-box.warn { background: rgba(255, 149, 0, 0.08); color: var(--warning); }
   .modal-section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--label);
+    font-size: 13px; font-weight: 600; color: var(--label);
     margin: 18px 0 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
   }
   .badge-sm {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   }
-  .badge-sm.a { background: var(--accent); color: white; }
-  .badge-sm.b { background: var(--success); color: white; }
+  .badge-sm.vault { background: var(--accent); color: white; }
   .badge-sm.sheets { background: #0f9d58; color: white; }
   .badge-sm.ai { background: var(--purple); color: white; }
 
+  .source-option {
+    background: var(--bg-input); border-radius: var(--radius-md);
+    padding: 16px; margin-bottom: 8px; cursor: pointer;
+    transition: background 0.15s;
+    border: 2px solid transparent;
+  }
+  .source-option:hover { background: var(--bg-input-focus); }
+  .source-option.selected {
+    background: rgba(0, 122, 255, 0.08);
+    border-color: var(--accent);
+  }
+  .source-option-title {
+    font-size: 14px; font-weight: 600; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .source-option-desc { font-size: 12px; color: var(--label-secondary); }
+  .source-icon {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 12px;
+  }
+
+  /* Toast */
   .toast {
-    position: fixed;
-    top: 70px;
-    left: 50%;
+    position: fixed; top: 70px; left: 50%;
     transform: translateX(-50%) translateY(-20px);
     background: rgba(28, 28, 30, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 28px;
-    font-size: 14px;
-    font-weight: 500;
-    opacity: 0;
-    pointer-events: none;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    color: white; padding: 12px 20px;
+    border-radius: 28px; font-size: 14px; font-weight: 500;
+    opacity: 0; pointer-events: none;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     z-index: 400;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast-check {
-    width: 18px; height: 18px;
-    border-radius: 50%;
+    width: 18px; height: 18px; border-radius: 50%;
     background: var(--success);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 11px; font-weight: bold;
   }
   .toast.error .toast-check { background: var(--destructive); }
 
-  .action-bar {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-elevated);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border: 0.5px solid var(--separator);
-    border-radius: 20px;
-    padding: 8px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-    display: flex;
-    gap: 4px;
+  /* Auto-save indicator */
+  .autosave-indicator {
+    position: fixed; bottom: 90px; right: 24px;
+    background: rgba(28, 28, 30, 0.7);
+    color: white; padding: 6px 12px;
+    border-radius: 14px; font-size: 11px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
     z-index: 50;
-    flex-wrap: wrap;
-    max-width: calc(100% - 48px);
+    backdrop-filter: blur(20px);
   }
-  .action-bar button {
-    background: transparent;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 14px;
-    color: var(--label);
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  .action-bar button:hover { background: var(--bg-input); }
-  .action-bar button.primary {
-    background: var(--accent);
-    color: white;
-    padding: 10px 22px;
-  }
-  .action-bar button.primary:hover { background: var(--accent-hover); }
-  .action-bar button.save {
-    background: var(--success);
-    color: white;
-    padding: 10px 22px;
-  }
+  .autosave-indicator.show { opacity: 1; }
 
-  .csv-preview-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    margin: 12px 0;
-  }
+  /* CSV preview */
+  .csv-preview-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 12px 0; }
   .csv-preview-table th {
-    background: var(--bg-input);
-    padding: 8px;
-    text-align: left;
-    font-weight: 600;
-    color: var(--label-secondary);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    background: var(--bg-input); padding: 8px; text-align: left;
+    font-weight: 600; color: var(--label-secondary);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
   }
-  .csv-preview-table td {
-    padding: 6px 8px;
-    border-bottom: 0.5px solid var(--separator);
-  }
+  .csv-preview-table td { padding: 6px 8px; border-bottom: 0.5px solid var(--separator); }
   .csv-row-dup { background: rgba(255, 149, 0, 0.06); }
   .csv-row-new { background: rgba(52, 199, 89, 0.06); }
 </style>
@@ -1003,16 +736,13 @@
 
 <nav class="nav">
   <div>
-    <div class="nav-title">議事録</div>
+    <div class="nav-title">議事録 v9</div>
     <div class="nav-subtitle">Plaud × Obsidian × Sheets × Claude</div>
   </div>
   <div class="nav-actions">
     <div class="status-group">
-      <div class="status-pill" id="vaultStatus1" onclick="openVaultModal()">
-        <span class="dot"></span><span id="vaultLabel1">A: 未設定</span>
-      </div>
-      <div class="status-pill" id="vaultStatus2" onclick="openVaultModal()">
-        <span class="dot"></span><span id="vaultLabel2">B: 未設定</span>
+      <div class="status-pill" id="vaultStatus" onclick="openVaultModal()">
+        <span class="dot"></span><span id="vaultLabel">Vault: 未設定</span>
       </div>
       <div class="status-pill" id="sheetsStatus" onclick="openIntegrationsModal()">
         <span class="dot"></span><span id="sheetsLabel">Sheets</span>
@@ -1029,30 +759,21 @@
 </nav>
 
 <div class="container view active" id="viewMtg">
-  <div class="grid">
 
+  <div class="phase-progress" id="phaseProgress">
+    <div class="phase-step" data-phase="prep"><div class="phase-step-dot">1</div><span>準備</span></div>
+    <div class="phase-step-line"></div>
+    <div class="phase-step" data-phase="recording"><div class="phase-step-dot">2</div><span>記録</span></div>
+    <div class="phase-step-line"></div>
+    <div class="phase-step" data-phase="processing"><div class="phase-step-dot">3</div><span>整形</span></div>
+    <div class="phase-step-line"></div>
+    <div class="phase-step" data-phase="review"><div class="phase-step-dot">4</div><span>確認</span></div>
+  </div>
+
+  <!-- PHASE 1: PREP -->
+  <div class="phase" id="phasePrep">
     <section class="card">
-      <div class="voice-import-card">
-        <div class="voice-import-header">
-          <div class="voice-import-icon">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M8 1v10M8 11l-3-3M8 11l3-3M2 13v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div class="voice-import-title">Plaud / 音声テキスト取り込み</div>
-            <div class="voice-import-sub">トランスクリプト or AI要約を貼り付け → AI整形で自動入力</div>
-          </div>
-        </div>
-        <textarea class="voice-textarea" id="voiceInput" placeholder="Plaud Note Pro の文字起こしや要約をここに貼り付け（日本語・英語・中国語ミックスOK）..."></textarea>
-        <div class="voice-actions">
-          <button class="btn-ai" id="aiBtn" onclick="runAIFormat()">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="white"/></svg>
-            AI整形 → 自動入力
-          </button>
-          <button class="btn-secondary" onclick="document.getElementById('voiceInput').value=''" style="flex: 0 0 auto; min-width: 80px;">クリア</button>
-        </div>
-      </div>
+      <div class="card-title">📋 MTG情報</div>
 
       <div class="group-label">基本情報</div>
       <div class="group">
@@ -1063,6 +784,14 @@
         <div class="row">
           <span class="row-label">日付</span>
           <input class="row-input" type="date" id="date">
+        </div>
+        <div class="row">
+          <span class="row-label">予定時刻</span>
+          <div style="display: flex; gap: 8px; align-items: center; flex: 1; justify-content: flex-end;">
+            <input class="row-input" type="time" id="scheduledStart" style="max-width: 100px;">
+            <span style="color: var(--label-tertiary); font-size: 13px;">〜</span>
+            <input class="row-input" type="time" id="scheduledEnd" style="max-width: 100px;">
+          </div>
         </div>
         <div class="row">
           <span class="row-label">種別</span>
@@ -1085,6 +814,14 @@
           </select>
         </div>
         <div class="row">
+          <span class="row-label">実施形式</span>
+          <select class="row-select" id="meetingFormat">
+            <option value="対面">対面</option>
+            <option value="オンライン">オンライン</option>
+            <option value="ハイブリッド">ハイブリッド</option>
+          </select>
+        </div>
+        <div class="row">
           <span class="row-label">場所</span>
           <input class="row-input" type="text" id="location" placeholder="Zoom / 会議室A">
         </div>
@@ -1098,7 +835,7 @@
       <div class="selected-block">
         <div class="selected-header">
           <span>選択中</span>
-          <span id="selectedCount">0名（社内 0 / 社外 0）</span>
+          <span id="selectedCount">0名(社内 0 / 社外 0)</span>
         </div>
         <div class="selected-chips" id="selectedChips">
           <div class="selected-empty">下から選択するか、検索してください</div>
@@ -1110,7 +847,7 @@
           <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
           <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <input type="text" id="searchInput" placeholder="名前・所属で検索" oninput="renderCandidates()">
+        <input type="text" id="searchInput" placeholder="名前・所属・分野で検索" oninput="renderCandidates()">
       </div>
 
       <div class="filter-row">
@@ -1118,121 +855,196 @@
         <button class="filter-chip" data-filter="internal" onclick="setFilter('internal')">社内</button>
         <button class="filter-chip" data-filter="external" onclick="setFilter('external')">社外</button>
         <button class="filter-chip" data-filter="recent" onclick="setFilter('recent')">最近</button>
-        <button class="filter-chip" data-filter="suggested" onclick="setFilter('suggested')" id="suggestedFilter" style="display:none;">AI提案</button>
       </div>
+
+      <div class="filter-row cat" id="categoryFilterRow"></div>
 
       <div id="candidatePanel"></div>
 
-      <details class="section" open style="margin-top: 16px;">
-        <summary>議題・議論</summary>
-        <div style="margin-top: 8px;">
-          <div class="text-block">
-            <div class="text-block-label">アジェンダ</div>
-            <textarea id="agenda" placeholder="・議題1&#10;・議題2"></textarea>
-          </div>
-          <div class="text-block">
-            <div class="text-block-label">議論内容</div>
-            <textarea id="discussion" placeholder="論点・出た意見・背景" style="min-height: 100px;"></textarea>
-          </div>
+      <div class="start-button-area">
+        <button class="btn-start" id="startBtn" onclick="startMtg()">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="white" stroke-width="2"/>
+            <path d="M6 5l5 3-5 3z" fill="white"/>
+          </svg>
+          MTGスタート
+        </button>
+        <div style="font-size: 12px; color: var(--label-tertiary); margin-top: 8px;">
+          タイトルと日付を入力後、スタートしてください
         </div>
-      </details>
-
-      <details class="section" open>
-        <summary>決定・次回</summary>
-        <div style="margin-top: 8px;">
-          <div class="text-block">
-            <div class="text-block-label">決定事項（記入時のみ Decision フォルダにも保存）</div>
-            <textarea id="decisions" placeholder="・決定1&#10;・決定2"></textarea>
-          </div>
-          <div class="text-block">
-            <div class="text-block-label">未解決論点</div>
-            <textarea id="openQuestions"></textarea>
-          </div>
-          <div class="text-block">
-            <div class="text-block-label">次回</div>
-            <textarea id="nextMtg" placeholder="来週火曜 14:00" style="min-height: 40px;"></textarea>
-          </div>
-        </div>
-      </details>
-
-      <div style="margin: 16px 0 12px; font-size: 13px; font-weight: 600; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.04em;">
-        ToDo（Asana同期対象 — 担当者は社内のみ）
       </div>
-      <div id="todoContainer"></div>
-      <button class="add-todo" onclick="addTodo()">+ ToDoを追加</button>
+    </section>
+  </div>
 
-      <details class="section" style="margin-top: 16px;">
-        <summary>追加メモ</summary>
-        <div style="margin-top: 8px;">
-          <div class="text-block">
-            <div class="text-block-label">タグ（カンマ区切り）</div>
-            <textarea id="extraTags" style="min-height: 40px;"></textarea>
-          </div>
-          <div class="text-block">
-            <div class="text-block-label">自由メモ</div>
-            <textarea id="freeNotes"></textarea>
-          </div>
-        </div>
-      </details>
+  <!-- PHASE 2: RECORDING -->
+  <div class="phase" id="phaseRecording">
+    <section class="recording-card">
+      <div class="recording-header">
+        <div class="recording-dot"></div>
+        <span class="recording-label">記録中</span>
+      </div>
+      <div class="elapsed-time" id="elapsedTime">00:00:00</div>
+      <div style="font-size: 13px; color: var(--label-secondary); margin-bottom: 6px;" id="recordingTitle"></div>
+      <div class="recording-reminder" id="recordingReminder">
+        💡 Plaud で録音オンになっていますか？
+      </div>
     </section>
 
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">出力</div>
-        <div class="card-icon" style="background: linear-gradient(135deg, #34c759, #30d158);">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-            <path d="M5 12l5 5L20 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="memo-header">
+        <div class="memo-title">📝 リアルタイムメモ</div>
+        <div class="memo-hint">タイムスタンプ自動挿入</div>
+      </div>
+      <div class="memo-toolbar">
+        <button class="memo-btn" onclick="insertTimestamp()">⏱ タイムスタンプ挿入</button>
+        <button class="memo-btn" onclick="insertMemoMarker('決定')">✓ 決定</button>
+        <button class="memo-btn" onclick="insertMemoMarker('ToDo')">▶ ToDo</button>
+        <button class="memo-btn" onclick="insertMemoMarker('論点')">? 論点</button>
+        <button class="memo-btn" onclick="insertMemoMarker('発言')">💬 発言</button>
+      </div>
+      <textarea class="memo-textarea" id="realtimeMemo" placeholder="メモを書いてください...&#10;&#10;Enter キーで改行 + 自動タイムスタンプ&#10;Tab キーで重要マーカー挿入"></textarea>
+
+      <div class="stop-button-area">
+        <button class="btn-stop" onclick="stopMtg()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="4" y="4" width="8" height="8" fill="white" rx="1"/>
           </svg>
+          MTGストップ
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- PHASE 3: PROCESSING -->
+  <div class="phase" id="phaseProcessing">
+    <section class="processing-card">
+      <div class="processing-spinner"></div>
+      <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">議事録を作成中...</div>
+      <div style="font-size: 13px; color: var(--label-secondary);">文字起こしとメモを統合しています</div>
+
+      <div class="processing-steps">
+        <div class="processing-step" id="step-transcript">
+          <div class="processing-icon">1</div>
+          <span>文字起こしを取得</span>
+        </div>
+        <div class="processing-step" id="step-integrate">
+          <div class="processing-icon">2</div>
+          <span>リアルタイムメモと統合</span>
+        </div>
+        <div class="processing-step" id="step-format">
+          <div class="processing-icon">3</div>
+          <span>AI整形・構造化</span>
+        </div>
+        <div class="processing-step" id="step-asana">
+          <div class="processing-icon">4</div>
+          <span>Asanaレコメンド生成</span>
         </div>
       </div>
+    </section>
+  </div>
+
+  <!-- PHASE 4: REVIEW -->
+  <div class="phase" id="phaseReview">
+    <section class="card">
+      <div class="card-title">📄 確認 & 編集</div>
 
       <div class="save-result" id="saveResult" style="display:none;">
         <div class="save-result-title" id="saveResultTitle">保存しました</div>
         <div id="saveResultBody"></div>
       </div>
 
-      <div class="preview-section">
-        <div class="preview-title">Asana タスク</div>
-        <div class="preview-hint">投入前に内容を確認してください</div>
-        <div id="todoPreview">
-          <div class="empty"><div class="empty-icon">⌨</div><div>「完了」を押すと表示されます</div></div>
+      <div class="group-label">基本情報（編集可能）</div>
+      <div class="group">
+        <div class="row">
+          <span class="row-label">タイトル</span>
+          <input class="row-input" type="text" id="reviewTitle">
         </div>
-        <div class="btn-row" id="todoActions" style="display: none;">
-          <button class="btn-secondary" onclick="copyTodos()">テキストでコピー</button>
+        <div class="row">
+          <span class="row-label">日付</span>
+          <span class="row-input" id="reviewDate" style="color: var(--label-secondary);"></span>
+        </div>
+        <div class="row">
+          <span class="row-label">予定時刻</span>
+          <span class="row-input" id="reviewScheduled" style="color: var(--label-secondary);"></span>
+        </div>
+        <div class="row">
+          <span class="row-label">経過時間</span>
+          <span class="row-input" id="reviewDuration" style="color: var(--label-secondary);"></span>
         </div>
       </div>
 
+      <div class="group-label">議事録 内容（編集可能）</div>
+      <div class="group">
+        <div class="row" style="padding: 12px 14px;">
+          <textarea id="reviewAgenda" placeholder="アジェンダ" style="width:100%; background:transparent; border:none; color:var(--label); font-family:inherit; font-size:14px; resize:vertical; min-height:50px; outline:none;"></textarea>
+        </div>
+        <div class="row" style="padding: 12px 14px;">
+          <textarea id="reviewDiscussion" placeholder="議論内容" style="width:100%; background:transparent; border:none; color:var(--label); font-family:inherit; font-size:14px; resize:vertical; min-height:80px; outline:none;"></textarea>
+        </div>
+        <div class="row" style="padding: 12px 14px;">
+          <textarea id="reviewDecisions" placeholder="決定事項" style="width:100%; background:transparent; border:none; color:var(--label); font-family:inherit; font-size:14px; resize:vertical; min-height:50px; outline:none;"></textarea>
+        </div>
+        <div class="row" style="padding: 12px 14px;">
+          <textarea id="reviewOpenQuestions" placeholder="未解決論点" style="width:100%; background:transparent; border:none; color:var(--label); font-family:inherit; font-size:14px; resize:vertical; min-height:50px; outline:none;"></textarea>
+        </div>
+        <div class="row" style="padding: 12px 14px;">
+          <textarea id="reviewNextMtg" placeholder="次回" style="width:100%; background:transparent; border:none; color:var(--label); font-family:inherit; font-size:14px; resize:vertical; min-height:40px; outline:none;"></textarea>
+        </div>
+      </div>
+
+      <div class="group-label">ToDo</div>
+      <div id="reviewTodos"></div>
+
+      <div class="btn-row" style="margin: 16px 0;">
+        <button class="btn-secondary" onclick="regenerateAI()">🔄 AI整形をやり直す</button>
+        <button class="btn-secondary" onclick="updateMarkdownPreview()">📝 プレビュー更新</button>
+      </div>
+    </section>
+
+    <section class="card">
       <div class="preview-section">
-        <div class="preview-title">Obsidian Markdown</div>
-        <div class="preview-hint">両Vaultに同じ内容で保存</div>
-        <div class="code-output" id="mdOutput">— 完了を押すと生成 —</div>
-        <div class="btn-row">
-          <button class="btn-secondary" onclick="copyMarkdown()">Markdownをコピー</button>
+        <div class="preview-title">🎯 Asanaレコメンデーション</div>
+        <div class="preview-hint">仮実装：手動でAsanaに投入するための判定</div>
+        <div id="asanaRecPanel">
+          <div class="empty"><div class="empty-icon">🎯</div><div>ToDoがありません</div></div>
+        </div>
+        <div class="btn-row" id="asanaActions" style="display: none;">
+          <button class="btn-secondary" onclick="copyAsanaText()">Asana用テキストをコピー</button>
         </div>
       </div>
     </section>
 
+    <section class="card">
+      <div class="preview-section">
+        <div class="preview-title">📄 Obsidian Markdown プレビュー</div>
+        <div class="preview-hint">00_captures/MTG/YYYY/MM/ に保存される内容</div>
+        <div class="code-output" id="mdOutput">プレビュー生成中...</div>
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="copyMarkdown()">MDコピー</button>
+          <button class="btn-success" onclick="saveToVault()" style="flex: 2;">💾 Vaultへ送信</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="btn-row">
+        <button class="btn-cancel" onclick="resetMtg()">新規MTGを開始（破棄）</button>
+      </div>
+    </section>
   </div>
+
 </div>
 
 <div class="container view" id="viewContacts">
   <section class="card">
-    <div class="card-header">
-      <div class="card-title">連絡先</div>
-      <div class="card-icon" style="background: linear-gradient(135deg, var(--purple), #af52de);">
-        <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-          <circle cx="12" cy="8" r="4" stroke="white" stroke-width="2"/>
-          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </div>
-    </div>
+    <div class="card-title">👥 連絡先</div>
 
     <div class="search-bar">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
         <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
-      <input type="text" id="contactSearch" placeholder="名前・所属で検索" oninput="renderContactList()">
+      <input type="text" id="contactSearch" placeholder="名前・所属・分野で検索" oninput="renderContactList()">
     </div>
 
     <div class="filter-row">
@@ -1251,6 +1063,56 @@
 
     <div class="contact-list" id="contactList"></div>
   </section>
+</div>
+
+<!-- Modals -->
+<div class="modal-backdrop" id="transcriptModal">
+  <div class="modal">
+    <div class="modal-title">📝 文字起こしの取得</div>
+    <div class="modal-sub">どこから文字起こしを取得しますか？</div>
+
+    <div class="source-option" onclick="selectSource('plaud')" id="srcPlaud">
+      <div class="source-option-title">
+        <div class="source-icon" style="background: var(--purple);">P</div>
+        Plaud からコピペ
+      </div>
+      <div class="source-option-desc">Plaud アプリで文字起こしを開き、コピーして次の画面でペースト</div>
+    </div>
+
+    <div class="source-option" onclick="selectSource('zoom')" id="srcZoom">
+      <div class="source-option-title">
+        <div class="source-icon" style="background: #2D8CFF;">Z</div>
+        Zoom 等からコピペ
+      </div>
+      <div class="source-option-desc">Zoom / Teams / Google Meet の文字起こしを次の画面でペースト</div>
+    </div>
+
+    <div class="source-option" onclick="selectSource('manual')" id="srcManual">
+      <div class="source-option-title">
+        <div class="source-icon" style="background: var(--label-secondary);">M</div>
+        手動入力（任意のテキスト）
+      </div>
+      <div class="source-option-desc">どこかからコピー、または直接ペースト</div>
+    </div>
+
+    <div class="source-option" onclick="selectSource('none')" id="srcNone">
+      <div class="source-option-title">
+        <div class="source-icon" style="background: var(--label-tertiary);">✕</div>
+        文字起こしなし（メモのみ）
+      </div>
+      <div class="source-option-desc">リアルタイムメモだけで整形を実行</div>
+    </div>
+
+    <div id="transcriptPasteArea" style="display: none; margin-top: 16px;">
+      <div class="modal-section-title">文字起こしを貼り付け</div>
+      <textarea id="transcriptInput" style="width:100%; min-height:200px; background:var(--bg-input); border:none; border-radius:var(--radius-md); padding:12px; font-family:'SF Mono',monospace; font-size:13px; color:var(--label); outline:none; resize:vertical;" placeholder="ここにペースト（Cmd+V）..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeTranscriptModal()">キャンセル</button>
+      <button class="btn-primary" id="proceedBtn" onclick="proceedWithTranscript()" disabled>整形を開始</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-backdrop" id="contactModal">
@@ -1272,6 +1134,11 @@
           <option value="external">社外</option>
         </select>
       </div>
+      <div class="row">
+        <span class="row-label">分野</span>
+        <input class="row-input" type="text" id="cCategory" placeholder="caseplay / Google / IP / 顧客 など" list="categoryOptions">
+        <datalist id="categoryOptions"></datalist>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeContactModal()">キャンセル</button>
@@ -1284,62 +1151,40 @@
 <div class="modal-backdrop" id="vaultModal">
   <div class="modal">
     <div class="modal-title">Obsidian Vault 設定</div>
-    <div class="modal-sub">同じ議事録を2つのVaultに同時保存します。</div>
+    <div class="modal-sub">議事録を Obsidian Vault に自動保存します。</div>
 
     <div class="info-box" id="vaultApiInfo"></div>
 
     <div class="modal-section-title">
-      <span class="badge-sm a">A</span><span>Vault A(メイン)</span>
+      <span class="badge-sm vault">VAULT</span><span>Obsidian Vault</span>
     </div>
     <div class="group">
       <div class="row">
         <span class="row-label">フォルダ</span>
-        <span class="row-input" id="vaultName1" style="color: var(--label-secondary);">未設定</span>
-      </div>
-      <div class="row">
-        <span class="row-label">有効</span>
-        <input type="checkbox" class="toggle" id="vault1Enabled" checked>
+        <span class="row-input" id="vaultName" style="color: var(--label-secondary);">未設定</span>
       </div>
     </div>
-    <button class="btn-secondary" onclick="selectVault(1)" style="width:100%; margin-top:-8px; margin-bottom:8px;">Vault Aを選択</button>
+    <button class="btn-secondary" onclick="selectVault()" style="width:100%; margin-top:-8px; margin-bottom:8px;">Vaultを選択</button>
 
-    <div class="modal-section-title">
-      <span class="badge-sm b">B</span><span>Vault B(同時保存先)</span>
-    </div>
+    <div class="modal-section-title">フォルダ設定</div>
     <div class="group">
       <div class="row">
-        <span class="row-label">フォルダ</span>
-        <span class="row-input" id="vaultName2" style="color: var(--label-secondary);">未設定</span>
+        <span class="row-label">MTGノート保存先</span>
+        <input class="row-input" type="text" id="folderMtg" value="00_captures/MTG">
       </div>
       <div class="row">
-        <span class="row-label">有効</span>
-        <input type="checkbox" class="toggle" id="vault2Enabled" checked>
+        <span class="row-label">日付フォルダ</span>
+        <select class="row-select" id="dateFolderMode">
+          <option value="none">なし（フラット）</option>
+          <option value="year-month" selected>年/月（YYYY/MM）</option>
+          <option value="year-month-day">年/月/日（YYYY/MM/DD）</option>
+        </select>
       </div>
     </div>
-    <button class="btn-secondary" onclick="selectVault(2)" style="width:100%; margin-top:-8px; margin-bottom:8px;">Vault Bを選択</button>
 
-    <div class="modal-section-title">共通設定</div>
-    <div class="group">
-      <div class="row">
-        <span class="row-label">MTGノート</span>
-        <input class="row-input" type="text" id="folderMtg" value="01_MTG">
-      </div>
-      <div class="row">
-        <span class="row-label">決定事項</span>
-        <input class="row-input" type="text" id="folderDecision" value="04_Decision">
-      </div>
-      <div class="row">
-        <span class="row-label">人物ノート</span>
-        <input class="row-input" type="text" id="folderPeople" value="04_People">
-      </div>
-      <div class="row">
-        <span class="row-label" style="flex:1;">決定事項を別ノートに</span>
-        <input type="checkbox" class="toggle" id="optDecision" checked>
-      </div>
-      <div class="row">
-        <span class="row-label" style="flex:1;">人物ノート自動生成</span>
-        <input type="checkbox" class="toggle" id="optPeople" checked>
-      </div>
+    <div class="info-box">
+      <strong>保存例（年/月）:</strong><br>
+      00_captures/MTG/2026/05/2026-05-17_caseplay週次定例.md
     </div>
 
     <div class="modal-footer">
@@ -1355,7 +1200,7 @@
     <div class="modal-sub">Google Sheets と Claude API の接続情報を設定します。</div>
 
     <div class="modal-section-title">
-      <span class="badge-sm sheets">SHEETS</span><span>Google Sheets(GAS Web App)</span>
+      <span class="badge-sm sheets">SHEETS</span><span>Google Sheets（GAS Web App）</span>
     </div>
     <div class="group">
       <div class="row">
@@ -1374,7 +1219,7 @@
     <button class="btn-secondary" onclick="testSheetsConnection()" style="width:100%; margin-top:-8px; margin-bottom:8px;">接続テスト</button>
 
     <div class="modal-section-title">
-      <span class="badge-sm ai">AI</span><span>Claude API(音声テキスト自動整形)</span>
+      <span class="badge-sm ai">AI</span><span>Claude API</span>
     </div>
     <div class="group">
       <div class="row">
@@ -1395,7 +1240,7 @@
       </div>
     </div>
     <div class="info-box warn">
-      ⚠ APIキーはこのブラウザのLocalStorageに保存されます。共有端末では使わないでください。
+      ⚠ APIキーはこのブラウザのLocalStorageに保存されます。
     </div>
 
     <div class="modal-footer">
@@ -1412,10 +1257,6 @@
     <div style="overflow:auto; max-height: 320px;">
       <table class="csv-preview-table" id="csvPreviewTable"></table>
     </div>
-    <div class="info-box">
-      想定形式：name,org,type （type は internal / external）<br>
-      日本語ヘッダー（名前, 会社, 区分）も対応します。
-    </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeCSVPreview()">キャンセル</button>
       <button class="btn-primary" onclick="confirmCSVImport()">インポート実行</button>
@@ -1423,10 +1264,15 @@
   </div>
 </div>
 
-<div class="action-bar" id="actionBar">
-  <button onclick="composeAll()" class="primary">完了</button>
-  <button onclick="saveToVaults()" class="save">両Vaultへ保存</button>
-  <button onclick="copyMarkdown()">MDコピー</button>
+<div class="modal-backdrop" id="resumeModal">
+  <div class="modal" style="max-width: 460px;">
+    <div class="modal-title">📂 中断していたMTGがあります</div>
+    <div class="modal-sub" id="resumeInfo"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="discardResume()">破棄して新規</button>
+      <button class="btn-primary" onclick="resumeMtg()">続きから再開</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast">
@@ -1434,20 +1280,19 @@
   <span id="toastMsg">copied</span>
 </div>
 
+<div class="autosave-indicator" id="autosaveIndicator">💾 自動保存しました</div>
+
 <script>
-  const STORAGE_KEY = 'mtgtool_v6';
+  const STORAGE_KEY = 'mtgtool_v9';
+  const STORAGE_KEY_OLD = 'mtgtool_v8';
+  const SESSION_KEY = 'mtgtool_v9_session';
+
   let state = {
     contacts: [],
     recentIds: [],
-    todoIdx: 0,
     settings: {
-      folderMtg: '01_MTG',
-      folderDecision: '04_Decision',
-      folderPeople: '04_People',
-      optDecision: true,
-      optPeople: true,
-      vault1Enabled: true,
-      vault2Enabled: true,
+      folderMtg: '00_captures/MTG',
+      dateFolderMode: 'year-month',
       gasUrl: '',
       gasToken: '',
       sheetsEnabled: false,
@@ -1456,31 +1301,61 @@
       claudeEnabled: false,
     },
   };
-  let vaultHandle1 = null;
-  let vaultHandle2 = null;
+
+  let mtgSession = {
+    phase: 'prep',
+    info: null,
+    startedAt: null,
+    stoppedAt: null,
+    realtimeMemo: '',
+    transcript: { source: '', text: '' },
+    aiResult: null,
+    asanaRecs: [],
+    attendeeIds: [],
+  };
+
+  let vaultHandle = null;
   let selectedIds = new Set();
   let suggestedIds = new Set();
   let currentFilter = 'all';
+  let currentCategoryFilter = 'all';
   let contactFilter = 'all';
   let editingContactId = null;
   let currentView = 'mtg';
   let csvPendingRows = [];
+  let elapsedTimer = null;
+  let autoSaveTimer = null;
 
   const FS_SUPPORTED = 'showDirectoryPicker' in window;
 
   function loadState() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
+      let raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        // v8 → v9 / v7 → v9 / v6 → v9 のマイグレーション
+        const oldRaw = localStorage.getItem(STORAGE_KEY_OLD) || localStorage.getItem('mtgtool_v7') || localStorage.getItem('mtgtool_v6');
+        if (oldRaw) {
+          const oldState = JSON.parse(oldRaw);
+          if (oldState.contacts) {
+            // category がない古い形式に対し空欄を補う
+            state.contacts = oldState.contacts.map(c => ({ ...c, category: c.category || '' }));
+          }
+          if (oldState.recentIds) state.recentIds = oldState.recentIds;
+          if (oldState.settings) {
+            state.settings = { ...state.settings, ...oldState.settings };
+          }
+          saveState();
+        }
+      } else {
         const saved = JSON.parse(raw);
-        if (saved.contacts) state.contacts = saved.contacts;
+        if (saved.contacts) state.contacts = saved.contacts.map(c => ({ ...c, category: c.category || '' }));
         if (saved.recentIds) state.recentIds = saved.recentIds;
         if (saved.settings) state.settings = { ...state.settings, ...saved.settings };
       }
     } catch (e) {}
     if (state.contacts.length === 0) {
       state.contacts = [
-        { id: uid(), name: '遠藤', org: 'FOX', type: 'internal', created_at: now(), updated_at: now() },
+        { id: uid(), name: '遠藤', org: 'FOX', type: 'internal', category: '経営', created_at: now(), updated_at: now() },
       ];
       saveState();
     }
@@ -1488,141 +1363,780 @@
   function saveState() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
   }
+  function saveSession() {
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(mtgSession));
+      showAutosave();
+    } catch (e) {}
+  }
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+  }
+  function clearSession() {
+    localStorage.removeItem(SESSION_KEY);
+  }
+  function showAutosave() {
+    const ind = document.getElementById('autosaveIndicator');
+    ind.classList.add('show');
+    clearTimeout(window._autosaveTimer);
+    window._autosaveTimer = setTimeout(() => ind.classList.remove('show'), 1500);
+  }
+
   function uid() { return 'c_' + Math.random().toString(36).slice(2, 10); }
   function now() { return new Date().toISOString(); }
 
-  async function sheetsCall(action, params = {}, method = 'GET') {
-    if (!state.settings.gasUrl || !state.settings.gasToken) {
-      throw new Error('Sheets未設定');
-    }
-    const baseUrl = `${state.settings.gasUrl}?action=${action}&token=${encodeURIComponent(state.settings.gasToken)}`;
-    if (method === 'POST') {
-      return fetch(baseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(params),
-      }).then(r => r.json());
-    }
-    const u = new URL(baseUrl);
-    Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
-    return fetch(u.toString()).then(r => r.json());
-  }
-
-  async function testSheetsConnection() {
-    const url = document.getElementById('gasUrl').value.trim();
-    const token = document.getElementById('gasToken').value.trim();
-    if (!url || !token) { showToast('URL と Token を入力してください', true); return; }
-    state.settings.gasUrl = url;
-    state.settings.gasToken = token;
-    try {
-      const res = await sheetsCall('list_contacts');
-      if (res.ok) showToast(`接続OK: ${res.data?.length || 0}件`);
-      else throw new Error(res.error || 'unknown');
-    } catch (e) {
-      showToast('接続失敗: ' + e.message, true);
+  function buildDatePath(dateStr) {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    if (!year || !month) return '';
+    switch (state.settings.dateFolderMode) {
+      case 'year-month': return `${year}/${month}`;
+      case 'year-month-day': return `${year}/${month}/${day}`;
+      case 'none':
+      default: return '';
     }
   }
 
-  async function syncFromSheets() {
-    if (!state.settings.sheetsEnabled) { showToast('Sheets連携を有効に', true); return; }
-    try {
-      const res = await sheetsCall('list_contacts');
-      if (!res.ok) throw new Error(res.error);
-      state.contacts = res.data.map(r => ({
-        id: r.id, name: r.name, org: r.org || '',
-        type: r.type || 'external',
-        created_at: r.created_at, updated_at: r.updated_at,
-      }));
-      saveState();
-      renderContactList();
-      if (currentView === 'mtg') renderCandidates();
-      refreshAssigneeOptions();
-      showToast(`${state.contacts.length}件を同期`);
-    } catch (e) {
-      showToast('同期失敗: ' + e.message, true);
+  // ===== PHASE TRANSITIONS =====
+  function transitionPhase(newPhase) {
+    mtgSession.phase = newPhase;
+    document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('phase' + capitalize(newPhase));
+    if (target) target.classList.add('active');
+
+    document.querySelectorAll('.phase-step').forEach(step => {
+      step.classList.remove('active', 'done');
+      const stepPhase = step.dataset.phase;
+      if (stepPhase === newPhase) step.classList.add('active');
+      const order = ['prep', 'recording', 'processing', 'review'];
+      if (order.indexOf(stepPhase) < order.indexOf(newPhase)) step.classList.add('done');
+    });
+
+    document.body.classList.toggle('recording', newPhase === 'recording');
+    saveSession();
+  }
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // ===== PHASE 1: PREP =====
+  function startMtg() {
+    const title = document.getElementById('title').value.trim();
+    const date = document.getElementById('date').value;
+    if (!title) { showToast('タイトルを入力してください', true); return; }
+    if (!date) { showToast('日付を選択してください', true); return; }
+
+    mtgSession.info = {
+      title,
+      date,
+      scheduledStart: document.getElementById('scheduledStart').value,
+      scheduledEnd: document.getElementById('scheduledEnd').value,
+      mtgType: document.getElementById('mtgType').value,
+      project: document.getElementById('project').value,
+      meetingFormat: document.getElementById('meetingFormat').value,
+      location: document.getElementById('location').value.trim(),
+    };
+    mtgSession.attendeeIds = [...selectedIds];
+    mtgSession.startedAt = new Date().toISOString();
+    mtgSession.realtimeMemo = '';
+
+    document.getElementById('recordingTitle').textContent = `${title} (${mtgSession.info.mtgType} / ${mtgSession.info.project})`;
+    updateRecordingReminder();
+
+    transitionPhase('recording');
+    startElapsedTimer();
+    startAutoSave();
+    document.getElementById('realtimeMemo').focus();
+    showToast(`MTG開始: ${title}`);
+  }
+  function updateRecordingReminder() {
+    const rem = document.getElementById('recordingReminder');
+    const format = mtgSession.info?.meetingFormat || '対面';
+    if (format === 'オンライン') {
+      rem.innerHTML = '💡 Plaud / Zoom録音オンを確認してください';
+    } else {
+      rem.innerHTML = '💡 Plaud Note Pro を起動してください';
     }
   }
 
-  async function pushContactToSheets(contact, action) {
-    if (!state.settings.sheetsEnabled) return;
-    try {
-      const res = await sheetsCall(action, { contact }, 'POST');
-      if (res.ok && res.data?.id && action === 'create_contact') {
-        contact.id = res.data.id;
-        saveState();
+  // ===== PHASE 2: RECORDING =====
+  function startElapsedTimer() {
+    const startTime = new Date(mtgSession.startedAt).getTime();
+    const update = () => {
+      const elapsed = Date.now() - startTime;
+      document.getElementById('elapsedTime').textContent = formatElapsed(elapsed);
+    };
+    update();
+    elapsedTimer = setInterval(update, 1000);
+  }
+  function stopElapsedTimer() {
+    if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+  }
+  function formatElapsed(ms) {
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function getElapsedTimestamp() {
+    if (!mtgSession.startedAt) return '00:00:00';
+    const elapsed = Date.now() - new Date(mtgSession.startedAt).getTime();
+    return formatElapsed(elapsed);
+  }
+  function insertTimestamp() {
+    const ta = document.getElementById('realtimeMemo');
+    const ts = getElapsedTimestamp();
+    const insert = `\n[${ts}] `;
+    insertAtCursor(ta, insert);
+    ta.focus();
+  }
+  function insertMemoMarker(type) {
+    const ta = document.getElementById('realtimeMemo');
+    const ts = getElapsedTimestamp();
+    const insert = `\n[${ts}] 【${type}】 `;
+    insertAtCursor(ta, insert);
+    ta.focus();
+  }
+  function insertAtCursor(ta, text) {
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + text + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + text.length;
+  }
+  function startAutoSave() {
+    autoSaveTimer = setInterval(() => {
+      if (mtgSession.phase === 'recording') {
+        mtgSession.realtimeMemo = document.getElementById('realtimeMemo').value;
+        saveSession();
       }
-    } catch (e) { console.warn('Sheets push:', e); }
+    }, 5000);
+  }
+  function stopAutoSave() {
+    if (autoSaveTimer) { clearInterval(autoSaveTimer); autoSaveTimer = null; }
   }
 
-  async function pushInteractions(attendees, mtgInfo) {
-    if (!state.settings.sheetsEnabled || attendees.length === 0) return;
+  document.addEventListener('DOMContentLoaded', () => {
+    const memo = document.getElementById('realtimeMemo');
+    if (memo) {
+      memo.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const ts = getElapsedTimestamp();
+          insertAtCursor(memo, `\n[${ts}] `);
+        } else if (e.key === 'Tab') {
+          e.preventDefault();
+          insertAtCursor(memo, '  ');
+        }
+      });
+    }
+  });
+
+  function stopMtg() {
+    if (!confirm('MTGを終了して文字起こし取得画面に進みますか？')) return;
+    mtgSession.stoppedAt = new Date().toISOString();
+    mtgSession.realtimeMemo = document.getElementById('realtimeMemo').value;
+    stopElapsedTimer();
+    stopAutoSave();
+    saveSession();
+    openTranscriptModal();
+  }
+
+  // ===== TRANSCRIPT SOURCE MODAL =====
+  let currentSource = null;
+  function openTranscriptModal() {
+    currentSource = null;
+    document.querySelectorAll('.source-option').forEach(o => o.classList.remove('selected'));
+    document.getElementById('transcriptPasteArea').style.display = 'none';
+    document.getElementById('transcriptInput').value = '';
+    document.getElementById('proceedBtn').disabled = true;
+    document.getElementById('transcriptModal').classList.add('show');
+  }
+  function closeTranscriptModal() {
+    document.getElementById('transcriptModal').classList.remove('show');
+  }
+  function selectSource(source) {
+    currentSource = source;
+    document.querySelectorAll('.source-option').forEach(o => o.classList.remove('selected'));
+    document.getElementById('src' + capitalize(source)).classList.add('selected');
+
+    const pasteArea = document.getElementById('transcriptPasteArea');
+    const proceedBtn = document.getElementById('proceedBtn');
+
+    if (source === 'none') {
+      pasteArea.style.display = 'none';
+      proceedBtn.disabled = false;
+    } else {
+      pasteArea.style.display = 'block';
+      const ta = document.getElementById('transcriptInput');
+      ta.placeholder = source === 'plaud' ? 'Plaudの文字起こしをペースト (Cmd+V)'
+        : source === 'zoom' ? 'Zoom/Teams/Meetの文字起こしをペースト (Cmd+V)'
+        : 'テキストをペースト (Cmd+V)';
+      proceedBtn.disabled = false;
+      setTimeout(() => ta.focus(), 100);
+    }
+  }
+  function proceedWithTranscript() {
+    if (!currentSource) { showToast('ソースを選択してください', true); return; }
+    const text = document.getElementById('transcriptInput').value.trim();
+    if (currentSource !== 'none' && !text) {
+      showToast('文字起こしをペーストしてください', true);
+      return;
+    }
+    mtgSession.transcript = { source: currentSource, text };
+    saveSession();
+    closeTranscriptModal();
+    transitionPhase('processing');
+    runAIProcessing();
+  }
+
+  // ===== PHASE 3: PROCESSING =====
+  async function runAIProcessing() {
+    setProcessStep('step-transcript', 'done');
+    setProcessStep('step-integrate', 'active');
+
+    if (!state.settings.claudeEnabled || !state.settings.claudeKey) {
+      showToast('Claude APIキーが必要です', true);
+      setProcessStep('step-integrate', '');
+      transitionPhase('recording');
+      openIntegrationsModal();
+      return;
+    }
+
     try {
-      await sheetsCall('log_interactions', {
-        interactions: attendees.map(a => ({
-          contact_id: a.id, mtg_date: mtgInfo.date,
-          mtg_title: mtgInfo.title, project: mtgInfo.project,
-          obsidian_note_path: mtgInfo.path,
-        })),
-      }, 'POST');
-    } catch (e) { console.warn('Interactions:', e); }
+      setProcessStep('step-integrate', 'done');
+      setProcessStep('step-format', 'active');
+
+      const aiResult = await runIntegratedAI();
+      mtgSession.aiResult = aiResult;
+      saveSession();
+
+      setProcessStep('step-format', 'done');
+      setProcessStep('step-asana', 'active');
+
+      const todos = aiResult.todos || [];
+      if (todos.length > 0) {
+        mtgSession.asanaRecs = await generateAsanaRecs(todos);
+      } else {
+        mtgSession.asanaRecs = [];
+      }
+      saveSession();
+
+      setProcessStep('step-asana', 'done');
+
+      await new Promise(r => setTimeout(r, 300));
+      transitionPhase('review');
+      populateReviewView();
+      updateMarkdownPreview();
+      renderAsanaRecommendations();
+    } catch (e) {
+      console.error(e);
+      showToast('AI処理失敗: ' + e.message, true);
+      transitionPhase('recording');
+    }
+  }
+  function setProcessStep(id, status) {
+    const el = document.getElementById(id);
+    el.classList.remove('active', 'done');
+    if (status) el.classList.add(status);
+    if (status === 'done') {
+      el.querySelector('.processing-icon').textContent = '✓';
+    }
   }
 
-  async function selectVault(num) {
+  async function runIntegratedAI() {
+    const info = mtgSession.info;
+    const attendees = mtgSession.attendeeIds
+      .map(id => state.contacts.find(c => c.id === id))
+      .filter(Boolean);
+    const attendeeNames = attendees.map(a => `${a.name}${a.org ? '(' + a.org + ')' : ''}`).join(', ');
+    const contactNames = state.contacts.map(c => `${c.name}${c.org ? '(' + c.org + ')' : ''}`).join(', ');
+
+    const elapsed = formatElapsed(new Date(mtgSession.stoppedAt) - new Date(mtgSession.startedAt));
+
+    const prompt = `あなたは MTG の議事録作成専門家です。
+以下の情報を統合して構造化議事録を作成し、JSONのみで返してください（説明・コードブロック記号不要）。
+
+【MTG情報】
+- タイトル: ${info.title}
+- 日付: ${info.date}
+- 種別: ${info.mtgType}
+- プロジェクト: ${info.project}
+- 実施形式: ${info.meetingFormat}
+- 場所: ${info.location || '未指定'}
+- 参加者: ${attendeeNames || '未指定'}
+- 経過時間: ${elapsed}
+
+【リアルタイムメモ（Yuhikoさんが MTG中に書いた重要ポイント）】
+${mtgSession.realtimeMemo || '（メモなし）'}
+
+【文字起こし（${mtgSession.transcript.source}）】
+${mtgSession.transcript.text || '（文字起こしなし）'}
+
+【既知の連絡先】
+${contactNames}
+
+【処理の指示】
+1. リアルタイムメモは Yuhiko さんが重要と判断したポイント。優先的に反映
+2. リアルタイムメモの【決定】【ToDo】【論点】マーカーを尊重
+3. 推測や追加情報を加えない
+4. 言及がない項目は空配列・空文字
+5. 人物名は連絡先リストにある表記に合わせる
+
+【出力形式（必須）】
+{
+  "agenda": "アジェンダ箇条書き（・始まり）",
+  "discussion": "議論の要約（200字以内）",
+  "decisions": "決定事項の箇条書き",
+  "todos": [{"name":"タスク名", "assignee":"担当者名 or 空文字", "due":"YYYY-MM-DD or 空文字"}],
+  "open_questions": "未解決論点",
+  "next_mtg": "次回MTG予定",
+  "mentioned_people": ["言及された人物名"]
+}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': state.settings.claudeKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: state.settings.claudeModel,
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API ${response.status}: ${err.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    let content = data.content?.[0]?.text || '';
+    content = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+    return JSON.parse(content);
+  }
+
+  async function generateAsanaRecs(todos) {
+    const info = mtgSession.info;
+    const prompt = `Asana 専門家として、以下のToDoを判定してください。
+
+MTG: ${info.title} / ${info.project} / ${info.date}
+
+ToDoリスト:
+${todos.map((t, i) => `${i+1}. ${t.name}${t.assignee ? ` (担当: ${t.assignee})` : ''}${t.due ? ` (期日: ${t.due})` : ''}`).join('\n')}
+
+各ToDoについて、Asanaでの推奨アクション:
+- "new": 新規タスク追加（具体的で期日あり）
+- "update": 既存タスク更新（継続中の進捗・期日変更）
+- "comment": 既存タスクにコメント追加（進捗報告）
+- "skip": Asana不要（メモのみで十分）
+
+JSONのみで返してください:
+{"recommendations":[{"index":0,"action":"new","reason":"...","confidence":0.9},...]}`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': state.settings.claudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: state.settings.claudeModel,
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      if (!response.ok) throw new Error('API error');
+      const data = await response.json();
+      let content = data.content?.[0]?.text || '';
+      content = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+      const parsed = JSON.parse(content);
+      return todos.map((t, i) => {
+        const rec = parsed.recommendations.find(r => r.index === i) ||
+          { action: 'new', reason: '判定なし', confidence: 0.5 };
+        return { todo: t, action: rec.action, reason: rec.reason, confidence: rec.confidence };
+      });
+    } catch (e) {
+      return todos.map(t => ({
+        todo: t, action: 'new',
+        reason: 'AI判定失敗', confidence: 0,
+      }));
+    }
+  }
+
+  // ===== PHASE 4: REVIEW =====
+  function populateReviewView() {
+    const info = mtgSession.info;
+    const ai = mtgSession.aiResult || {};
+    document.getElementById('reviewTitle').value = info.title;
+    document.getElementById('reviewDate').textContent = info.date;
+    const schedStr = (info.scheduledStart && info.scheduledEnd)
+      ? `${info.scheduledStart} 〜 ${info.scheduledEnd}`
+      : (info.scheduledStart ? info.scheduledStart : '未設定');
+    document.getElementById('reviewScheduled').textContent = schedStr;
+    const elapsed = formatElapsed(new Date(mtgSession.stoppedAt) - new Date(mtgSession.startedAt));
+    document.getElementById('reviewDuration').textContent = elapsed;
+    document.getElementById('reviewAgenda').value = ai.agenda || '';
+    document.getElementById('reviewDiscussion').value = ai.discussion || '';
+    document.getElementById('reviewDecisions').value = ai.decisions || '';
+    document.getElementById('reviewOpenQuestions').value = ai.open_questions || '';
+    document.getElementById('reviewNextMtg').value = ai.next_mtg || '';
+    renderReviewTodos();
+  }
+
+  function renderReviewTodos() {
+    const todos = mtgSession.aiResult?.todos || [];
+    const internals = state.contacts.filter(c => c.type === 'internal');
+    const c = document.getElementById('reviewTodos');
+    if (todos.length === 0) {
+      c.innerHTML = `<div class="empty"><div class="empty-icon">▶</div><div>ToDoなし</div></div>`;
+      return;
+    }
+    c.innerHTML = todos.map((t, i) => `
+      <div class="group" style="margin-bottom:6px;">
+        <div class="row">
+          <input type="text" class="row-input" data-todo-name="${i}" value="${esc(t.name)}" style="text-align:left;">
+        </div>
+        <div class="row">
+          <select class="row-select" data-todo-assignee="${i}" style="text-align:left;">
+            <option value="">担当者</option>
+            ${internals.map(c2 => `<option value="${escAttr(c2.name)}" ${c2.name === t.assignee ? 'selected' : ''}>${esc(c2.name)}</option>`).join('')}
+          </select>
+          <input type="date" data-todo-due="${i}" value="${esc(t.due || '')}" style="background:transparent;border:none;color:var(--label);font-family:inherit;font-size:14px;outline:none;">
+        </div>
+      </div>
+    `).join('');
+    c.querySelectorAll('[data-todo-name]').forEach(el => el.addEventListener('input', updateTodosFromReview));
+    c.querySelectorAll('[data-todo-assignee]').forEach(el => el.addEventListener('change', updateTodosFromReview));
+    c.querySelectorAll('[data-todo-due]').forEach(el => el.addEventListener('change', updateTodosFromReview));
+  }
+  function updateTodosFromReview() {
+    if (!mtgSession.aiResult) return;
+    const todos = mtgSession.aiResult.todos || [];
+    todos.forEach((t, i) => {
+      const nameEl = document.querySelector(`[data-todo-name="${i}"]`);
+      const assigneeEl = document.querySelector(`[data-todo-assignee="${i}"]`);
+      const dueEl = document.querySelector(`[data-todo-due="${i}"]`);
+      if (nameEl) t.name = nameEl.value.trim();
+      if (assigneeEl) t.assignee = assigneeEl.value.trim();
+      if (dueEl) t.due = dueEl.value.trim();
+    });
+    saveSession();
+  }
+
+  function updateMarkdownPreview() {
+    if (!mtgSession.aiResult) return;
+    updateTodosFromReview();
+    mtgSession.info.title = document.getElementById('reviewTitle').value.trim() || mtgSession.info.title;
+    mtgSession.aiResult.agenda = document.getElementById('reviewAgenda').value;
+    mtgSession.aiResult.discussion = document.getElementById('reviewDiscussion').value;
+    mtgSession.aiResult.decisions = document.getElementById('reviewDecisions').value;
+    mtgSession.aiResult.open_questions = document.getElementById('reviewOpenQuestions').value;
+    mtgSession.aiResult.next_mtg = document.getElementById('reviewNextMtg').value;
+    saveSession();
+    const md = buildMarkdown();
+    document.getElementById('mdOutput').textContent = md;
+  }
+
+  function buildMarkdown() {
+    const info = mtgSession.info;
+    const ai = mtgSession.aiResult || {};
+    const attendees = mtgSession.attendeeIds
+      .map(id => state.contacts.find(c => c.id === id))
+      .filter(Boolean);
+    const elapsed = formatElapsed(new Date(mtgSession.stoppedAt) - new Date(mtgSession.startedAt));
+
+    const tags = ['MTG', info.mtgType, info.project, info.meetingFormat].filter(Boolean);
+    const attendeesYaml = attendees.map(a => a.org ? `"${a.name}(${a.org})"` : `"${a.name}"`);
+
+    const fm = [
+      '---',
+      `title: ${info.title}`,
+      `date: ${info.date}`,
+      `scheduled_start: ${info.scheduledStart || ''}`,
+      `scheduled_end: ${info.scheduledEnd || ''}`,
+      `type: ${info.mtgType}`,
+      `project: ${info.project}`,
+      `meeting_format: ${info.meetingFormat}`,
+      `location: ${info.location || ''}`,
+      `attendees: [${attendeesYaml.join(', ')}]`,
+      `internal_count: ${attendees.filter(a => a.type === 'internal').length}`,
+      `external_count: ${attendees.filter(a => a.type === 'external').length}`,
+      `started_at: ${mtgSession.startedAt}`,
+      `stopped_at: ${mtgSession.stoppedAt}`,
+      `duration: ${elapsed}`,
+      `transcript_source: ${mtgSession.transcript.source}`,
+      `status: draft`,
+      `source: mtg-tool`,
+      `created_at: ${now()}`,
+      `tags: [${tags.map(t => `"${t}"`).join(', ')}]`,
+      '---', ''
+    ].join('\n');
+
+    let body = `# ${info.title}\n\n`;
+    const timeStr = (info.scheduledStart && info.scheduledEnd)
+      ? `${info.scheduledStart}-${info.scheduledEnd}`
+      : (info.scheduledStart ? info.scheduledStart : '');
+    body += `> [!info] ${info.date}${timeStr ? ' ' + timeStr : ''} ｜ ${info.mtgType} ｜ ${info.project} ｜ ${info.meetingFormat}\n`;
+    if (info.location) body += `> 場所: ${info.location}\n`;
+    body += `> 経過時間: ${elapsed}\n`;
+    if (attendees.length) {
+      const internals = attendees.filter(a => a.type === 'internal');
+      const externals = attendees.filter(a => a.type === 'external');
+      if (internals.length) body += `> 社内: ${internals.map(a => `${a.name}(${a.org || 'FOX'})`).join(' / ')}\n`;
+      if (externals.length) body += `> 社外: ${externals.map(a => `${a.name}(${a.org || '不明'})`).join(' / ')}\n`;
+    }
+    body += '\n';
+    if (ai.agenda) body += `## アジェンダ\n\n${ai.agenda}\n\n`;
+    if (ai.discussion) body += `## 議論内容\n\n${ai.discussion}\n\n`;
+    if (ai.decisions) body += `## 決定事項\n\n${ai.decisions}\n\n`;
+    if (ai.todos && ai.todos.length) {
+      body += `## ToDo\n\n`;
+      ai.todos.forEach(t => {
+        let line = `- [ ] ${t.name}`;
+        if (t.assignee) line += ` @${t.assignee}`;
+        if (t.due) line += ` 📅 ${t.due}`;
+        body += line + '\n';
+      });
+      body += '\n';
+    }
+    if (ai.open_questions) body += `## 未解決論点\n\n${ai.open_questions}\n\n`;
+    if (ai.next_mtg) body += `## 次回\n\n${ai.next_mtg}\n\n`;
+    if (mtgSession.realtimeMemo && mtgSession.realtimeMemo.trim()) {
+      body += `## リアルタイムメモ（原本）\n\n\`\`\`\n${mtgSession.realtimeMemo.trim()}\n\`\`\`\n\n`;
+    }
+    body += `---\n\n*このファイルは MTG-Tool v9 で生成された生記録です。精製・昇華は /sync が行います。*\n`;
+
+    return fm + body;
+  }
+
+  function renderAsanaRecommendations() {
+    const panel = document.getElementById('asanaRecPanel');
+    const actions = document.getElementById('asanaActions');
+    if (!mtgSession.asanaRecs || mtgSession.asanaRecs.length === 0) {
+      panel.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><div>ToDoがありません</div></div>`;
+      actions.style.display = 'none';
+      return;
+    }
+    actions.style.display = 'flex';
+    const actionLabel = {
+      'new': '新規追加', 'update': '既存更新',
+      'comment': 'コメント追加', 'skip': 'スキップ',
+    };
+    panel.innerHTML = mtgSession.asanaRecs.map((r, i) => `
+      <div class="asana-rec">
+        <div class="asana-rec-header">
+          <div class="asana-rec-icon">🤖</div>
+          <span>ToDo ${i + 1}</span>
+        </div>
+        <div class="asana-rec-task">${esc(r.todo.name)}</div>
+        <div class="asana-rec-action-row">
+          <span class="asana-action-badge ${r.action}">${actionLabel[r.action] || r.action}</span>
+          ${r.todo.assignee ? `<span class="pill assigned">◉ ${esc(r.todo.assignee)}</span>` : ''}
+          ${r.todo.due ? `<span class="pill due">◷ ${esc(r.todo.due)}</span>` : ''}
+        </div>
+        <div class="asana-rec-reason">理由: ${esc(r.reason)}</div>
+        <div class="asana-rec-confidence">信頼度: ${Math.round((r.confidence || 0) * 100)}%</div>
+      </div>
+    `).join('');
+  }
+
+  function copyAsanaText() {
+    if (!mtgSession.asanaRecs || mtgSession.asanaRecs.length === 0) { showToast('Asana判定なし', true); return; }
+    const info = mtgSession.info;
+    const actionLabel = {
+      'new': '【新規追加】', 'update': '【既存更新】',
+      'comment': '【コメント追加】', 'skip': '【スキップ】',
+    };
+    const text = mtgSession.asanaRecs
+      .filter(r => r.action !== 'skip')
+      .map((r, i) =>
+        `${i + 1}. ${actionLabel[r.action] || ''}${r.todo.name}\n` +
+        `   担当: ${r.todo.assignee || '未指定'} / 期日: ${r.todo.due || '未指定'} / プロジェクト: ${info.project}\n` +
+        `   理由: ${r.reason}`
+      ).join('\n\n');
+    navigator.clipboard.writeText(text).then(() => showToast('Asana用テキストをコピー'));
+  }
+
+  function copyMarkdown() {
+    const t = document.getElementById('mdOutput').textContent;
+    if (!t) { showToast('まずプレビューを生成', true); return; }
+    navigator.clipboard.writeText(t).then(() => showToast('MDコピー'));
+  }
+
+  async function regenerateAI() {
+    if (!confirm('AI整形をやり直しますか？')) return;
+    transitionPhase('processing');
+    setProcessStep('step-transcript', 'done');
+    setProcessStep('step-integrate', 'done');
+    setProcessStep('step-format', 'active');
+    try {
+      const aiResult = await runIntegratedAI();
+      mtgSession.aiResult = aiResult;
+      setProcessStep('step-format', 'done');
+      setProcessStep('step-asana', 'active');
+      const todos = aiResult.todos || [];
+      if (todos.length > 0) {
+        mtgSession.asanaRecs = await generateAsanaRecs(todos);
+      } else {
+        mtgSession.asanaRecs = [];
+      }
+      setProcessStep('step-asana', 'done');
+      saveSession();
+      await new Promise(r => setTimeout(r, 300));
+      transitionPhase('review');
+      populateReviewView();
+      updateMarkdownPreview();
+      renderAsanaRecommendations();
+    } catch (e) {
+      showToast('AI再整形失敗: ' + e.message, true);
+      transitionPhase('review');
+    }
+  }
+
+  async function saveToVault() {
+    updateMarkdownPreview();
+    const md = document.getElementById('mdOutput').textContent;
+
+    if (!vaultHandle) {
+      if (confirm('Vault未設定です。設定を開きますか？')) openVaultModal();
+      return;
+    }
+
+    const info = mtgSession.info;
+    const sanitizedTitle = (info.title || 'untitled').replace(/[\/\\\s:|<>"?*]/g, '_');
+    const filename = `${info.date}_${sanitizedTitle}.md`;
+    const datePath = buildDatePath(info.date);
+    const fullFolderPath = datePath
+      ? `${state.settings.folderMtg}/${datePath}`
+      : state.settings.folderMtg;
+
+    try {
+      const folder = await ensureFolder(vaultHandle, fullFolderPath);
+      await writeFile(folder, filename, md);
+      renderSaveResult({
+        vaultName: vaultHandle.name,
+        paths: [`${fullFolderPath}/${filename}`],
+        error: null,
+      });
+
+      if (state.settings.sheetsEnabled && mtgSession.attendeeIds.length) {
+        const attendees = mtgSession.attendeeIds.map(id => state.contacts.find(c => c.id === id)).filter(Boolean);
+        pushInteractions(attendees, {
+          date: info.date, title: info.title, project: info.project,
+          path: `${fullFolderPath}/${filename}`,
+        });
+      }
+      showToast('Vaultへ送信しました');
+    } catch (e) {
+      renderSaveResult({ vaultName: vaultHandle.name, paths: [], error: e.message });
+      showToast('送信失敗: ' + e.message, true);
+    }
+  }
+
+  function renderSaveResult(info) {
+    const panel = document.getElementById('saveResult');
+    const title = document.getElementById('saveResultTitle');
+    panel.classList.toggle('warning', !!info.error);
+    title.innerHTML = info.error ? '⚠ 保存できませんでした' : '✓ Vaultへ送信しました';
+    let html = `<div style="font-size: 11px; font-weight: 600; color: var(--label); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+      <span class="badge-sm vault">VAULT</span> ${esc(info.vaultName)}
+    </div>`;
+    if (info.error) html += `<ul class="save-result-list"><li class="fail">エラー: ${esc(info.error)}</li></ul>`;
+    else html += `<ul class="save-result-list">${info.paths.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
+    document.getElementById('saveResultBody').innerHTML = html;
+    panel.style.display = 'block';
+  }
+
+  function resetMtg() {
+    if (!confirm('現在のMTGを破棄して新規開始しますか？')) return;
+    clearSession();
+    mtgSession = {
+      phase: 'prep', info: null, startedAt: null, stoppedAt: null,
+      realtimeMemo: '', transcript: { source: '', text: '' },
+      aiResult: null, asanaRecs: [], attendeeIds: [],
+    };
+    selectedIds.clear();
+    suggestedIds.clear();
+    document.getElementById('title').value = '';
+    document.getElementById('location').value = '';
+    document.getElementById('date').valueAsDate = new Date();
+    // 開催時刻デフォルト再設定（次の15分刻みから1時間）
+    (function() {
+      const now = new Date();
+      const mins = now.getMinutes();
+      const next15 = Math.ceil((mins + 1) / 15) * 15;
+      now.setMinutes(next15, 0, 0);
+      const end = new Date(now.getTime() + 60 * 60 * 1000);
+      const fmt = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      document.getElementById('scheduledStart').value = fmt(now);
+      document.getElementById('scheduledEnd').value = fmt(end);
+    })();
+    document.getElementById('realtimeMemo').value = '';
+    renderSelected();
+    renderCandidates();
+    transitionPhase('prep');
+    showToast('新規MTG準備');
+  }
+
+  // ===== RESUME =====
+  function checkResume() {
+    const saved = loadSession();
+    if (!saved || !saved.info) return;
+    if (saved.phase === 'prep' || saved.phase === 'review') return;
+    document.getElementById('resumeInfo').innerHTML =
+      `<strong>${esc(saved.info.title || 'Untitled')}</strong><br>` +
+      `日付: ${saved.info.date} / 開始: ${new Date(saved.startedAt).toLocaleTimeString('ja-JP')}<br>` +
+      `フェーズ: ${saved.phase}`;
+    document.getElementById('resumeModal').classList.add('show');
+  }
+  function resumeMtg() {
+    const saved = loadSession();
+    if (!saved) return;
+    mtgSession = saved;
+    selectedIds = new Set(saved.attendeeIds || []);
+    document.getElementById('resumeModal').classList.remove('show');
+    if (saved.phase === 'recording') {
+      document.getElementById('recordingTitle').textContent = `${saved.info.title} (${saved.info.mtgType} / ${saved.info.project})`;
+      document.getElementById('realtimeMemo').value = saved.realtimeMemo || '';
+      updateRecordingReminder();
+      transitionPhase('recording');
+      startElapsedTimer();
+      startAutoSave();
+      showToast('MTGを再開');
+    } else if (saved.phase === 'processing') {
+      transitionPhase('processing');
+      runAIProcessing();
+    }
+  }
+  function discardResume() {
+    if (!confirm('未送信のMTGを破棄しますか？')) return;
+    clearSession();
+    document.getElementById('resumeModal').classList.remove('show');
+    showToast('破棄しました');
+  }
+
+  // ===== VAULT =====
+  async function selectVault() {
     if (!FS_SUPPORTED) { alert('Chrome / Edge でご利用ください'); return; }
     try {
-      const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: `vault${num}` });
-      if (num === 1) {
-        vaultHandle1 = handle;
-        document.getElementById('vaultName1').textContent = handle.name;
-        document.getElementById('vaultName1').style.color = 'var(--label)';
-      } else {
-        vaultHandle2 = handle;
-        document.getElementById('vaultName2').textContent = handle.name;
-        document.getElementById('vaultName2').style.color = 'var(--label)';
-      }
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'vault' });
+      vaultHandle = handle;
+      document.getElementById('vaultName').textContent = handle.name;
+      document.getElementById('vaultName').style.color = 'var(--label)';
       updateAllStatus();
-      showToast(`Vault ${num === 1 ? 'A' : 'B'} 選択`);
-    } catch (e) {
-      if (e.name !== 'AbortError') showToast('選択キャンセル');
-    }
-  }
-  function updateAllStatus() {
-    const el1 = document.getElementById('vaultStatus1');
-    const lab1 = document.getElementById('vaultLabel1');
-    if (vaultHandle1 && state.settings.vault1Enabled) {
-      el1.classList.add('connected');
-      lab1.textContent = `A: ${vaultHandle1.name}`;
-    } else {
-      el1.classList.remove('connected');
-      lab1.textContent = vaultHandle1 ? 'A: 無効' : 'A: 未設定';
-    }
-    const el2 = document.getElementById('vaultStatus2');
-    const lab2 = document.getElementById('vaultLabel2');
-    if (vaultHandle2 && state.settings.vault2Enabled) {
-      el2.classList.add('connected');
-      lab2.textContent = `B: ${vaultHandle2.name}`;
-    } else {
-      el2.classList.remove('connected');
-      lab2.textContent = vaultHandle2 ? 'B: 無効' : 'B: 未設定';
-    }
-    const sEl = document.getElementById('sheetsStatus');
-    const sLab = document.getElementById('sheetsLabel');
-    if (state.settings.sheetsEnabled && state.settings.gasUrl) {
-      sEl.classList.add('connected');
-      sLab.textContent = 'Sheets ✓';
-    } else {
-      sEl.classList.remove('connected');
-      sLab.textContent = 'Sheets';
-    }
-    const aEl = document.getElementById('aiStatus');
-    const aLab = document.getElementById('aiLabel');
-    if (state.settings.claudeEnabled && state.settings.claudeKey) {
-      aEl.classList.add('connected');
-      aLab.textContent = 'AI ✓';
-    } else {
-      aEl.classList.remove('connected');
-      aLab.textContent = 'AI';
-    }
+      showToast('Vault選択完了');
+    } catch (e) { if (e.name !== 'AbortError') showToast('選択キャンセル'); }
   }
   async function ensureFolder(parent, folderPath) {
     const parts = folderPath.split('/').filter(Boolean);
@@ -1636,9 +2150,20 @@
     await writable.write(content);
     await writable.close();
   }
-  async function fileExists(folderHandle, filename) {
-    try { await folderHandle.getFileHandle(filename, { create: false }); return true; }
-    catch { return false; }
+
+  function updateAllStatus() {
+    const el = document.getElementById('vaultStatus');
+    const lab = document.getElementById('vaultLabel');
+    if (vaultHandle) { el.classList.add('connected'); lab.textContent = `Vault: ${vaultHandle.name}`; }
+    else { el.classList.remove('connected'); lab.textContent = 'Vault: 未設定'; }
+    const sEl = document.getElementById('sheetsStatus');
+    const sLab = document.getElementById('sheetsLabel');
+    if (state.settings.sheetsEnabled && state.settings.gasUrl) { sEl.classList.add('connected'); sLab.textContent = 'Sheets ✓'; }
+    else { sEl.classList.remove('connected'); sLab.textContent = 'Sheets'; }
+    const aEl = document.getElementById('aiStatus');
+    const aLab = document.getElementById('aiLabel');
+    if (state.settings.claudeEnabled && state.settings.claudeKey) { aEl.classList.add('connected'); aLab.textContent = 'AI ✓'; }
+    else { aEl.classList.remove('connected'); aLab.textContent = 'AI'; }
   }
 
   function openVaultModal() {
@@ -1646,31 +2171,111 @@
       ? '✓ File System Access API 対応'
       : '⚠ 非対応ブラウザ。Chrome/Edge をご利用ください';
     document.getElementById('folderMtg').value = state.settings.folderMtg;
-    document.getElementById('folderDecision').value = state.settings.folderDecision;
-    document.getElementById('folderPeople').value = state.settings.folderPeople;
-    document.getElementById('optDecision').checked = state.settings.optDecision;
-    document.getElementById('optPeople').checked = state.settings.optPeople;
-    document.getElementById('vault1Enabled').checked = state.settings.vault1Enabled;
-    document.getElementById('vault2Enabled').checked = state.settings.vault2Enabled;
-    document.getElementById('vaultName1').textContent = vaultHandle1 ? vaultHandle1.name : '未設定';
-    document.getElementById('vaultName2').textContent = vaultHandle2 ? vaultHandle2.name : '未設定';
+    document.getElementById('dateFolderMode').value = state.settings.dateFolderMode;
+    document.getElementById('vaultName').textContent = vaultHandle ? vaultHandle.name : '未設定';
+    if (vaultHandle) document.getElementById('vaultName').style.color = 'var(--label)';
     document.getElementById('vaultModal').classList.add('show');
   }
   function closeVaultModal() { document.getElementById('vaultModal').classList.remove('show'); }
   function saveVaultSettings() {
-    state.settings.folderMtg = document.getElementById('folderMtg').value.trim() || '01_MTG';
-    state.settings.folderDecision = document.getElementById('folderDecision').value.trim() || '04_Decision';
-    state.settings.folderPeople = document.getElementById('folderPeople').value.trim() || '04_People';
-    state.settings.optDecision = document.getElementById('optDecision').checked;
-    state.settings.optPeople = document.getElementById('optPeople').checked;
-    state.settings.vault1Enabled = document.getElementById('vault1Enabled').checked;
-    state.settings.vault2Enabled = document.getElementById('vault2Enabled').checked;
+    state.settings.folderMtg = document.getElementById('folderMtg').value.trim() || '00_captures/MTG';
+    state.settings.dateFolderMode = document.getElementById('dateFolderMode').value;
     saveState();
     updateAllStatus();
     closeVaultModal();
     showToast('保存しました');
   }
 
+  // ===== INTEGRATIONS =====
+  async function sheetsCall(action, params = {}, method = 'GET') {
+    if (!state.settings.gasUrl || !state.settings.gasToken) throw new Error('Sheets未設定');
+    const baseUrl = `${state.settings.gasUrl}?action=${action}&token=${encodeURIComponent(state.settings.gasToken)}`;
+    if (method === 'POST') {
+      return fetch(baseUrl, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(params),
+      }).then(r => r.json());
+    }
+    const u = new URL(baseUrl);
+    Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+    return fetch(u.toString()).then(r => r.json());
+  }
+  async function testSheetsConnection() {
+    const url = document.getElementById('gasUrl').value.trim();
+    const token = document.getElementById('gasToken').value.trim();
+    if (!url || !token) { showToast('URL と Token を入力してください', true); return; }
+    state.settings.gasUrl = url;
+    state.settings.gasToken = token;
+    try {
+      const res = await sheetsCall('list_contacts');
+      if (res.ok) showToast(`接続OK: ${res.data?.length || 0}件`);
+      else throw new Error(res.error || 'unknown');
+    } catch (e) { showToast('接続失敗: ' + e.message, true); }
+  }
+  // type値の正規化: '社内'/'社外' / 'internal'/'external' どちらも受け入れる
+  function normalizeType(t) {
+    const s = String(t || '').toLowerCase();
+    if (s === '社内' || s === 'internal' || s === 'in') return 'internal';
+    if (s === '社外' || s === 'external' || s === 'ex' || s === 'out') return 'external';
+    return 'external'; // デフォルト
+  }
+  function denormalizeType(t) {
+    // GAS送信時、日本語表記に戻す（Sheetsの可読性のため）
+    return t === 'internal' ? '社内' : '社外';
+  }
+
+  async function syncFromSheets() {
+    if (!state.settings.sheetsEnabled) { showToast('Sheets連携を有効に', true); return; }
+    try {
+      const res = await sheetsCall('list_contacts');
+      console.log('[sync] GAS response:', res);
+      if (!res.ok) throw new Error(res.error || 'list_contacts failed');
+      if (!Array.isArray(res.data)) throw new Error('Expected array, got: ' + typeof res.data);
+      state.contacts = res.data.map(r => ({
+        id: r.id || uid(),
+        name: r.name || '',
+        org: r.org || '',
+        type: normalizeType(r.type),
+        category: r.category || '',
+        created_at: r.created_at || now(),
+        updated_at: r.updated_at || now(),
+      }));
+      console.log('[sync] Parsed contacts:', state.contacts.slice(0, 3), '... total', state.contacts.length);
+      saveState();
+      renderContactList();
+      if (currentView === 'mtg') { renderCategoryFilters(); renderCandidates(); }
+      showToast(`${state.contacts.length}件を同期`);
+    } catch (e) {
+      console.error('[sync] Error:', e);
+      showToast('同期失敗: ' + e.message, true);
+    }
+  }
+  async function pushContactToSheets(contact, action) {
+    if (!state.settings.sheetsEnabled) return;
+    try {
+      // GASに送る時はtypeを日本語表記に戻す（Sheetsの可読性のため）
+      const payload = action === 'delete_contact'
+        ? { id: contact.id }
+        : { ...contact, type: denormalizeType(contact.type) };
+      const res = await sheetsCall(action, { contact: payload }, 'POST');
+      if (res.ok && res.data?.id && action === 'create_contact') {
+        contact.id = res.data.id;
+        saveState();
+      }
+    } catch (e) { console.warn('Sheets push:', e); }
+  }
+  async function pushInteractions(attendees, mtgInfo) {
+    if (!state.settings.sheetsEnabled || attendees.length === 0) return;
+    try {
+      await sheetsCall('log_interactions', {
+        interactions: attendees.map(a => ({
+          contact_id: a.id, mtg_date: mtgInfo.date,
+          mtg_title: mtgInfo.title, project: mtgInfo.project,
+          obsidian_note_path: mtgInfo.path,
+        })),
+      }, 'POST');
+    } catch (e) { console.warn('Interactions:', e); }
+  }
   function openIntegrationsModal() {
     document.getElementById('gasUrl').value = state.settings.gasUrl;
     document.getElementById('gasToken').value = state.settings.gasToken;
@@ -1680,9 +2285,7 @@
     document.getElementById('claudeEnabled').checked = state.settings.claudeEnabled;
     document.getElementById('integrationsModal').classList.add('show');
   }
-  function closeIntegrationsModal() {
-    document.getElementById('integrationsModal').classList.remove('show');
-  }
+  function closeIntegrationsModal() { document.getElementById('integrationsModal').classList.remove('show'); }
   function saveIntegrations() {
     state.settings.gasUrl = document.getElementById('gasUrl').value.trim();
     state.settings.gasToken = document.getElementById('gasToken').value.trim();
@@ -1697,23 +2300,59 @@
     if (state.settings.sheetsEnabled) syncFromSheets();
   }
 
+  // ===== VIEW SWITCH =====
   function switchView(v) {
     currentView = v;
     document.getElementById('viewMtg').classList.toggle('active', v === 'mtg');
     document.getElementById('viewContacts').classList.toggle('active', v === 'contacts');
     document.getElementById('tabMtg').classList.toggle('active', v === 'mtg');
     document.getElementById('tabContacts').classList.toggle('active', v === 'contacts');
-    document.getElementById('actionBar').style.display = v === 'mtg' ? 'flex' : 'none';
     if (v === 'contacts') renderContactList();
+    if (v === 'mtg') { renderCategoryFilters(); renderCandidates(); }
   }
 
+  // ===== CANDIDATES =====
   function setFilter(f) {
     currentFilter = f;
     document.querySelectorAll('[data-filter]').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    renderCategoryFilters();
     renderCandidates();
   }
+  function setCategoryFilter(cat) {
+    currentCategoryFilter = cat;
+    renderCategoryFilters();
+    renderCandidates();
+  }
+  function renderCategoryFilters() {
+    const row = document.getElementById('categoryFilterRow');
+    if (!row) return;
+    // currentFilterに合わせて、対象となる連絡先を絞り込んでからカテゴリを集計
+    let baseList = [...state.contacts];
+    if (currentFilter === 'internal') baseList = baseList.filter(c => c.type === 'internal');
+    else if (currentFilter === 'external') baseList = baseList.filter(c => c.type === 'external');
+    else if (currentFilter === 'recent') {
+      const recentSet = new Set(state.recentIds.slice(0, 20));
+      baseList = baseList.filter(c => recentSet.has(c.id));
+    }
+    const catCounts = {};
+    baseList.forEach(c => {
+      const cat = c.category || '(未分類)';
+      catCounts[cat] = (catCounts[cat] || 0) + 1;
+    });
+    const cats = Object.keys(catCounts).sort((a, b) => {
+      if (a === '(未分類)') return 1;
+      if (b === '(未分類)') return -1;
+      return catCounts[b] - catCounts[a]; // 件数の多い順
+    });
+    if (cats.length === 0) { row.innerHTML = ''; return; }
+    let html = `<button class="filter-chip ${currentCategoryFilter === 'all' ? 'active' : ''}" onclick="setCategoryFilter('all')">分野: 全て<span class="filter-chip-count">${baseList.length}</span></button>`;
+    cats.forEach(cat => {
+      html += `<button class="filter-chip ${currentCategoryFilter === cat ? 'active' : ''}" onclick="setCategoryFilter('${escAttr(cat)}')">${esc(cat)}<span class="filter-chip-count">${catCounts[cat]}</span></button>`;
+    });
+    row.innerHTML = html;
+  }
   function getFilteredContacts() {
-    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    const q = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
     let list = [...state.contacts];
     if (currentFilter === 'internal') list = list.filter(c => c.type === 'internal');
     else if (currentFilter === 'external') list = list.filter(c => c.type === 'external');
@@ -1722,17 +2361,21 @@
       list = list.filter(c => recentSet.has(c.id));
       list.sort((a, b) => state.recentIds.indexOf(a.id) - state.recentIds.indexOf(b.id));
     }
-    else if (currentFilter === 'suggested') {
-      list = list.filter(c => suggestedIds.has(c.id));
+    if (currentCategoryFilter !== 'all') {
+      if (currentCategoryFilter === '(未分類)') list = list.filter(c => !c.category);
+      else list = list.filter(c => c.category === currentCategoryFilter);
     }
     if (q) list = list.filter(c =>
-      c.name.toLowerCase().includes(q) || (c.org || '').toLowerCase().includes(q)
+      c.name.toLowerCase().includes(q) ||
+      (c.org || '').toLowerCase().includes(q) ||
+      (c.category || '').toLowerCase().includes(q)
     );
     return list;
   }
   function renderCandidates() {
     const list = getFilteredContacts();
     const panel = document.getElementById('candidatePanel');
+    if (!panel) return;
     if (list.length === 0) {
       panel.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div>該当なし</div></div>`;
       return;
@@ -1746,26 +2389,14 @@
       });
       const recents = state.recentIds.slice(0, 8).map(id => list.find(c => c.id === id)).filter(Boolean);
       let html = '';
-      if (suggestedIds.size > 0) {
-        const suggested = list.filter(c => suggestedIds.has(c.id));
-        if (suggested.length) {
-          html += `<div class="candidate-section">
-            <div class="candidate-title"><span>🤖 AI提案</span></div>
-            <div class="candidate-list">${suggested.map(renderCandidateChip).join('')}</div>
-          </div>`;
-        }
-      }
       if (recents.length && currentFilter !== 'recent') {
-        html += `<div class="candidate-section">
-          <div class="candidate-title"><span>Recents</span></div>
-          <div class="candidate-list">${recents.map(renderCandidateChip).join('')}</div>
-        </div>`;
+        html += `<div class="candidate-section"><div class="candidate-title"><span>Recents</span></div><div class="candidate-list">${recents.map(renderCandidateChip).join('')}</div></div>`;
       }
       Object.keys(byOrg).sort().forEach(org => {
         const items = byOrg[org];
         html += `<div class="candidate-section">
           <div class="candidate-title">
-            <span>${esc(org)}(${items.length}名)</span>
+            <span>${esc(org)}（${items.length}名）</span>
             <button class="candidate-add-all" onclick="addAllByOrg('${escAttr(org)}')">+ 全員追加</button>
           </div>
           <div class="candidate-list">${items.map(renderCandidateChip).join('')}</div>
@@ -1778,23 +2409,23 @@
   }
   function renderCandidateChip(c) {
     const sel = selectedIds.has(c.id);
-    const sug = suggestedIds.has(c.id);
-    return `<button class="candidate-chip ${sel ? 'selected' : ''} ${sug && !sel ? 'suggested' : ''}" onclick="toggleSelect('${c.id}')">
+    return `<button class="candidate-chip ${sel ? 'selected' : ''}" onclick="toggleSelect('${c.id}')">
       <span class="badge ${c.type}"></span>
       <span>${esc(c.name)}</span>
       ${c.org ? `<span class="org-tag">${esc(c.org)}</span>` : ''}
+      ${c.category ? `<span class="category-tag">${esc(c.category)}</span>` : ''}
     </button>`;
   }
   function toggleSelect(id) {
     if (selectedIds.has(id)) selectedIds.delete(id);
     else { selectedIds.add(id); bumpRecent(id); }
-    renderSelected(); renderCandidates(); refreshAssigneeOptions();
+    renderSelected(); renderCandidates();
   }
   function addAllByOrg(org) {
     const list = getFilteredContacts().filter(c => (c.org || '(所属未設定)') === org);
     list.forEach(c => { selectedIds.add(c.id); bumpRecent(c.id); });
-    renderSelected(); renderCandidates(); refreshAssigneeOptions();
-    showToast(`${org} ${list.length}名 追加`);
+    renderSelected(); renderCandidates();
+    showToast(`${org} ${list.length}名追加`);
   }
   function bumpRecent(id) {
     state.recentIds = [id, ...state.recentIds.filter(x => x !== id)].slice(0, 50);
@@ -1802,10 +2433,11 @@
   }
   function renderSelected() {
     const c = document.getElementById('selectedChips');
+    if (!c) return;
     const selected = [...selectedIds].map(id => state.contacts.find(x => x.id === id)).filter(Boolean);
     const internal = selected.filter(x => x.type === 'internal').length;
     const external = selected.filter(x => x.type === 'external').length;
-    document.getElementById('selectedCount').textContent = `${selected.length}名(社内 ${internal} / 社外 ${external})`;
+    document.getElementById('selectedCount').textContent = `${selected.length}名（社内 ${internal} / 社外 ${external}）`;
     if (selected.length === 0) {
       c.innerHTML = `<div class="selected-empty">下から選択するか、検索してください</div>`;
       return;
@@ -1820,393 +2452,18 @@
   }
   function clearSelected() {
     selectedIds.clear();
-    renderSelected(); renderCandidates(); refreshAssigneeOptions();
-  }
-  function refreshAssigneeOptions() {
-    const internals = state.contacts.filter(c => c.type === 'internal');
-    document.querySelectorAll('.todo-assignee').forEach(sel => {
-      const current = sel.value;
-      sel.innerHTML = `<option value="">担当者を選択(社内のみ)</option>` +
-        internals.map(c => `<option value="${escAttr(c.name)}">${esc(c.name)}</option>`).join('');
-      if (current && [...sel.options].some(o => o.value === current)) sel.value = current;
-    });
+    renderSelected();
+    renderCandidates();
   }
 
-  function addTodo(name = '', assignee = '', due = '') {
-    state.todoIdx++;
-    const c = document.getElementById('todoContainer');
-    const div = document.createElement('div');
-    div.className = 'todo-item';
-    div.dataset.id = state.todoIdx;
-    div.innerHTML = `
-      <input type="text" placeholder="タスク内容" class="todo-name" value="${esc(name)}">
-      <div class="todo-meta-row">
-        <select class="todo-assignee"></select>
-        <input type="date" class="todo-due" value="${esc(due)}">
-        <button class="todo-remove" onclick="this.closest('.todo-item').remove()">×</button>
-      </div>
-    `;
-    c.appendChild(div);
-    refreshAssigneeOptions();
-    if (assignee) {
-      const sel = div.querySelector('.todo-assignee');
-      const match = state.contacts.find(c => c.type === 'internal' && c.name.includes(assignee));
-      if (match) sel.value = match.name;
-    }
-  }
-  function getTodos() {
-    return Array.from(document.querySelectorAll('.todo-item')).map(it => ({
-      name: it.querySelector('.todo-name').value.trim(),
-      assignee: it.querySelector('.todo-assignee').value.trim(),
-      due: it.querySelector('.todo-due').value.trim(),
-    })).filter(t => t.name);
-  }
-
-  async function runAIFormat() {
-    if (!state.settings.claudeEnabled || !state.settings.claudeKey) {
-      showToast('Claude APIキーを設定してください', true);
-      openIntegrationsModal();
-      return;
-    }
-    const text = document.getElementById('voiceInput').value.trim();
-    if (!text) { showToast('音声テキストを貼り付けてください', true); return; }
-
-    const btn = document.getElementById('aiBtn');
-    btn.classList.add('loading');
-    btn.disabled = true;
-    btn.innerHTML = '<span>AI整形中...</span>';
-
-    try {
-      const contactNames = state.contacts.map(c => `${c.name}${c.org ? '(' + c.org + ')' : ''}`).join(', ');
-      const prompt = `あなたはMTGの文字起こしを構造化議事録に変換する専門家です。
-以下のテキストを分析し、JSONのみで返してください。説明や前置きは一切不要です。
-
-入力テキストには日本語・英語・中国語が混在する可能性があります。
-すべての言語を理解し、日本語の議事録として出力してください。
-
-抽出する項目(すべて省略不可、無い場合は空配列または空文字):
-- title: タイトル候補(30字以内)
-- agenda: アジェンダ箇条書き文字列("・"で始める)
-- discussion: 議論の要約(200字以内)
-- decisions: 決定事項の箇条書き文字列(明示的に決まった事項のみ)
-- todos: ToDoの配列。各要素は {name: string, assignee: string, due: string(YYYY-MM-DD or "")}
-- open_questions: 未解決論点の箇条書き文字列
-- next_mtg: 次回MTGの予定(言及があれば)
-- mentioned_people: 言及された人物名の配列
-
-既知の連絡先リスト(参考):${contactNames}
-
-注意:
-- 推測や追加情報は加えない
-- 言及がない項目は空配列・空文字で
-- 人物名は連絡先リストにある表記に合わせる(なければ言及通り)
-- JSONのみ返す、コードブロック記号も不要
-
-テキスト:
-${text}`;
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': state.settings.claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: state.settings.claudeModel,
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-
-      if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`API ${response.status}: ${err.slice(0, 200)}`);
-      }
-
-      const data = await response.json();
-      let content = data.content?.[0]?.text || '';
-      content = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
-      const parsed = JSON.parse(content);
-
-      if (parsed.title && !document.getElementById('title').value.trim()) {
-        document.getElementById('title').value = parsed.title;
-      }
-      if (parsed.agenda) document.getElementById('agenda').value = parsed.agenda;
-      if (parsed.discussion) document.getElementById('discussion').value = parsed.discussion;
-      if (parsed.decisions) document.getElementById('decisions').value = parsed.decisions;
-      if (parsed.open_questions) document.getElementById('openQuestions').value = parsed.open_questions;
-      if (parsed.next_mtg) document.getElementById('nextMtg').value = parsed.next_mtg;
-
-      if (parsed.todos && parsed.todos.length) {
-        document.getElementById('todoContainer').innerHTML = '';
-        parsed.todos.forEach(t => addTodo(t.name || '', t.assignee || '', t.due || ''));
-      }
-
-      suggestedIds.clear();
-      if (parsed.mentioned_people && parsed.mentioned_people.length) {
-        parsed.mentioned_people.forEach(name => {
-          const cleaned = name.replace(/\(.*?\)|（.*?）/g, '').trim();
-          const match = state.contacts.find(c =>
-            c.name === cleaned || c.name.includes(cleaned)
-          );
-          if (match) suggestedIds.add(match.id);
-        });
-        if (suggestedIds.size > 0) {
-          document.getElementById('suggestedFilter').style.display = 'inline-block';
-          renderCandidates();
-        }
-      }
-
-      showToast(`AI整形完了(${parsed.todos?.length || 0} ToDo, ${suggestedIds.size}名検出)`);
-    } catch (e) {
-      console.error(e);
-      showToast('AI整形失敗: ' + e.message, true);
-    } finally {
-      btn.classList.remove('loading');
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="white"/></svg> AI整形 → 自動入力';
-    }
-  }
-
-  function composeAll() {
-    const result = compose();
-    document.getElementById('mdOutput').textContent = result.mtgMd;
-    composeTodoPreview();
-    document.getElementById('saveResult').style.display = 'none';
-    showToast('生成しました');
-  }
-
-  function compose() {
-    const v = getValues();
-    const tags = buildTags(v);
-    const attendees = [...selectedIds].map(id => state.contacts.find(c => c.id === id)).filter(Boolean);
-    const sanitizedTitle = (v.title || 'untitled').replace(/[\/\\\s:|<>"?*]/g, '_');
-    const baseFilename = `${v.date}_${sanitizedTitle}.md`;
-    const attendeesYaml = attendees.map(a => a.org ? `"${a.name}(${a.org})"` : `"${a.name}"`);
-
-    const fm = [
-      '---',
-      `title: ${v.title || 'Untitled MTG'}`,
-      `date: ${v.date}`,
-      `type: ${v.mtgType}`,
-      `project: ${v.project}`,
-      `location: ${v.location || ''}`,
-      `attendees: [${attendeesYaml.join(', ')}]`,
-      `internal_count: ${attendees.filter(a => a.type === 'internal').length}`,
-      `external_count: ${attendees.filter(a => a.type === 'external').length}`,
-      `status: draft`,
-      `tags: [${tags.map(t => `"${t}"`).join(', ')}]`,
-      '---', ''
-    ].join('\n');
-
-    let body = `# ${v.title || 'Untitled MTG'}\n\n`;
-    body += `> [!info] ${v.date} ｜ ${v.mtgType} ｜ [[${v.project}]]\n`;
-    if (v.location) body += `> 場所:${v.location}\n`;
-    if (attendees.length) {
-      const internals = attendees.filter(a => a.type === 'internal');
-      const externals = attendees.filter(a => a.type === 'external');
-      if (internals.length) body += `> 社内:${internals.map(a => `[[${a.name}(${a.org || 'FOX'})]]`).join(' / ')}\n`;
-      if (externals.length) body += `> 社外:${externals.map(a => `[[${a.name}(${a.org || '不明'})]]`).join(' / ')}\n`;
-    }
-    body += '\n';
-    if (v.agenda) body += `## アジェンダ\n\n${v.agenda}\n\n`;
-    if (v.discussion) body += `## 議論内容\n\n${v.discussion}\n\n`;
-    if (v.decisions) body += `## 決定事項\n\n${v.decisions}\n\n`;
-    const todos = getTodos();
-    if (todos.length) {
-      body += `## ToDo(Asana同期対象)\n\n`;
-      todos.forEach(t => {
-        let line = `- [ ] ${t.name}`;
-        if (t.assignee) line += ` @${t.assignee}`;
-        if (t.due) line += ` 📅 ${t.due}`;
-        body += line + '\n';
-      });
-      body += '\n';
-    }
-    if (v.openQuestions) body += `## 未解決論点\n\n${v.openQuestions}\n\n`;
-    if (v.nextMtg) body += `## 次回\n\n${v.nextMtg}\n\n`;
-    if (v.freeNotes) body += `## メモ\n\n${v.freeNotes}\n\n`;
-    body += `---\n\n**関連**:[[${v.project}]]\n`;
-
-    let decisionMd = null;
-    if (state.settings.optDecision && v.decisions) {
-      const dfm = [
-        '---',
-        `title: ${v.title || 'Untitled MTG'} — 決定事項`,
-        `date: ${v.date}`,
-        `project: ${v.project}`,
-        `source: "[[${v.date}_${sanitizedTitle}]]"`,
-        `tags: ["Decision", "${v.project}"]`,
-        '---', ''
-      ].join('\n');
-      decisionMd = dfm + `# 決定事項:${v.title || 'Untitled MTG'}\n\n` +
-        `> [!note] ${v.date} ｜ [[${v.project}]]\n> 出典:[[${v.date}_${sanitizedTitle}]]\n\n` +
-        `## 決定内容\n\n${v.decisions}\n\n` +
-        (v.discussion ? `## 背景\n\n${v.discussion}\n` : '');
-    }
-
-    const peopleNotes = [];
-    if (state.settings.optPeople) {
-      attendees.forEach(a => {
-        const filename = `${a.name}(${a.org || (a.type === 'internal' ? 'FOX' : '不明')}).md`;
-        const md = [
-          '---',
-          `name: ${a.name}`,
-          `org: ${a.org || ''}`,
-          `type: ${a.type}`,
-          `tags: ["Person", "${a.type === 'internal' ? '社内' : '社外'}"${a.org ? `, "${a.org}"` : ''}]`,
-          '---', ''
-        ].join('\n');
-        const noteBody = `# ${a.name}\n\n- **所属**:${a.org || '—'}\n- **区分**:${a.type === 'internal' ? '社内' : '社外'}\n\n` +
-          `## 関連MTG\n\n\`\`\`dataview\nLIST FROM "${state.settings.folderMtg}"\nWHERE contains(attendees, "${a.name}(${a.org || ''})")\nSORT date DESC\n\`\`\`\n`;
-        peopleNotes.push({ filename, content: md + noteBody });
-      });
-    }
-
-    return { filename: baseFilename, mtgMd: fm + body, decisionMd, peopleNotes, attendees, v };
-  }
-
-  function composeTodoPreview() {
-    const v = getValues();
-    const todos = getTodos();
-    const c = document.getElementById('todoPreview');
-    const actions = document.getElementById('todoActions');
-    if (!todos.length) {
-      c.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div>ToDoが登録されていません</div></div>`;
-      actions.style.display = 'none';
-      return;
-    }
-    actions.style.display = 'flex';
-    c.innerHTML = todos.map((t, i) => `
-      <div class="task-card">
-        <div class="task-number">${i + 1}</div>
-        <div class="task-body">
-          <div class="task-name">${esc(t.name)}</div>
-          <div class="task-pills">
-            <span class="pill assigned ${t.assignee ? '' : 'muted'}">${t.assignee ? '◉ ' + esc(t.assignee) : '○ 担当未定'}</span>
-            <span class="pill due ${t.due ? '' : 'muted'}">${t.due ? '◷ ' + esc(t.due) : '○ 期日未定'}</span>
-            <span class="pill project">▸ ${esc(v.project)}</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-  function buildTags(v) {
-    const tags = ['MTG', v.mtgType, v.project];
-    if (v.extraTags) v.extraTags.split(',').forEach(t => { const tt = t.trim(); if (tt) tags.push(tt); });
-    return [...new Set(tags)].filter(Boolean);
-  }
-  function getValues() {
-    return {
-      title: val('title'), date: val('date'), mtgType: val('mtgType'),
-      project: val('project'), location: val('location'),
-      agenda: val('agenda'), discussion: val('discussion'), decisions: val('decisions'),
-      openQuestions: val('openQuestions'), nextMtg: val('nextMtg'),
-      extraTags: val('extraTags'), freeNotes: val('freeNotes'),
-    };
-  }
-  function val(id) { return document.getElementById(id).value.trim(); }
-
-  async function saveToVaults() {
-    const result = compose();
-    document.getElementById('mdOutput').textContent = result.mtgMd;
-    composeTodoPreview();
-
-    const targets = [];
-    if (vaultHandle1 && state.settings.vault1Enabled) targets.push({ label: 'A', handle: vaultHandle1 });
-    if (vaultHandle2 && state.settings.vault2Enabled) targets.push({ label: 'B', handle: vaultHandle2 });
-    if (targets.length === 0) {
-      if (confirm('Vault未設定です。設定を開きますか？')) openVaultModal();
-      return;
-    }
-
-    const resultByVault = {};
-    let anyFailed = false;
-
-    for (const t of targets) {
-      const paths = [];
-      try {
-        const mtgFolder = await ensureFolder(t.handle, state.settings.folderMtg);
-        await writeFile(mtgFolder, result.filename, result.mtgMd);
-        paths.push(`${state.settings.folderMtg}/${result.filename}`);
-        if (result.decisionMd) {
-          const decFolder = await ensureFolder(t.handle, state.settings.folderDecision);
-          await writeFile(decFolder, result.filename, result.decisionMd);
-          paths.push(`${state.settings.folderDecision}/${result.filename}`);
-        }
-        if (result.peopleNotes.length) {
-          const peopleFolder = await ensureFolder(t.handle, state.settings.folderPeople);
-          for (const p of result.peopleNotes) {
-            if (!(await fileExists(peopleFolder, p.filename))) {
-              await writeFile(peopleFolder, p.filename, p.content);
-              paths.push(`${state.settings.folderPeople}/${p.filename}(新規)`);
-            }
-          }
-        }
-        resultByVault[t.label] = { vaultName: t.handle.name, paths, error: null };
-      } catch (e) {
-        resultByVault[t.label] = { vaultName: t.handle.name, paths, error: e.message };
-        anyFailed = true;
-      }
-    }
-
-    renderSaveResult(resultByVault, anyFailed);
-
-    if (state.settings.sheetsEnabled && result.attendees.length) {
-      pushInteractions(result.attendees, {
-        date: result.v.date, title: result.v.title,
-        project: result.v.project,
-        path: `${state.settings.folderMtg}/${result.filename}`,
-      });
-    }
-
-    saveState();
-    showToast(anyFailed ? '一部失敗' : `保存完了(${targets.length}Vault)`);
-  }
-
-  function renderSaveResult(resultByVault, anyFailed) {
-    const panel = document.getElementById('saveResult');
-    const title = document.getElementById('saveResultTitle');
-    panel.classList.toggle('warning', anyFailed);
-    title.innerHTML = anyFailed
-      ? '⚠ 一部保存できませんでした'
-      : '✓ 両Vaultに保存しました';
-    let html = '';
-    for (const [label, info] of Object.entries(resultByVault)) {
-      html += `<div class="save-vault-section">
-        <div class="save-vault-name"><span class="badge-sm ${label === 'B' ? 'b' : 'a'}">${label}</span> ${esc(info.vaultName)}</div>`;
-      if (info.error) html += `<ul class="save-result-list"><li class="fail">エラー: ${esc(info.error)}</li></ul>`;
-      else html += `<ul class="save-result-list">${info.paths.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
-      html += `</div>`;
-    }
-    document.getElementById('saveResultBody').innerHTML = html;
-    panel.style.display = 'block';
-  }
-
-  function copyMarkdown() {
-    const t = document.getElementById('mdOutput').textContent;
-    if (!t || t.startsWith('—')) { showToast('まず完了を押してください'); return; }
-    navigator.clipboard.writeText(t).then(() => showToast('Markdownコピー'));
-  }
-  function copyTodos() {
-    const v = getValues();
-    const todos = getTodos();
-    if (!todos.length) { showToast('ToDoなし'); return; }
-    const text = todos.map((t, i) =>
-      `${i + 1}. ${t.name}\n   担当: ${t.assignee || '未指定'} / 期日: ${t.due || '未指定'} / Project: ${v.project}`
-    ).join('\n\n');
-    navigator.clipboard.writeText(text).then(() => showToast('ToDoコピー'));
-  }
-
+  // ===== CONTACTS =====
   function setContactFilter(f) {
     contactFilter = f;
     document.querySelectorAll('[data-cfilter]').forEach(b => b.classList.toggle('active', b.dataset.cfilter === f));
     renderContactList();
   }
   function renderContactList() {
-    const q = document.getElementById('contactSearch').value.toLowerCase().trim();
+    const q = document.getElementById('contactSearch')?.value.toLowerCase().trim() || '';
     let list = [...state.contacts];
     document.getElementById('cntAll').textContent = `(${state.contacts.length})`;
     document.getElementById('cntInt').textContent = `(${state.contacts.filter(c => c.type === 'internal').length})`;
@@ -2214,10 +2471,14 @@ ${text}`;
     if (contactFilter === 'internal') list = list.filter(c => c.type === 'internal');
     else if (contactFilter === 'external') list = list.filter(c => c.type === 'external');
     if (q) list = list.filter(c =>
-      c.name.toLowerCase().includes(q) || (c.org || '').toLowerCase().includes(q)
+      c.name.toLowerCase().includes(q) ||
+      (c.org || '').toLowerCase().includes(q) ||
+      (c.category || '').toLowerCase().includes(q)
     );
     list.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'internal' ? -1 : 1;
+      const ca = a.category || 'zzz', cb = b.category || 'zzz';
+      if (ca !== cb) return ca.localeCompare(cb);
       return (a.org || 'zzz').localeCompare(b.org || 'zzz') || a.name.localeCompare(b.name);
     });
     const c = document.getElementById('contactList');
@@ -2230,7 +2491,7 @@ ${text}`;
         <div class="contact-avatar ${p.type === 'external' ? 'external' : ''}">${esc(p.name.slice(0, 1))}</div>
         <div class="contact-info">
           <div class="contact-name">${esc(p.name)}</div>
-          <div class="contact-meta">${esc(p.org || '所属未設定')}</div>
+          <div class="contact-meta">${esc(p.org || '所属未設定')}${p.category ? `<span class="category-tag">${esc(p.category)}</span>` : ''}</div>
         </div>
       </div>
     `).join('');
@@ -2239,14 +2500,18 @@ ${text}`;
     editingContactId = id;
     document.getElementById('modalTitle').textContent = id ? '連絡先を編集' : '新規連絡先';
     document.getElementById('modalDeleteBtn').style.display = id ? 'block' : 'none';
+    // categoryのdatalistを既存値から自動生成
+    const cats = [...new Set(state.contacts.map(c => c.category).filter(Boolean))].sort();
+    document.getElementById('categoryOptions').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
     if (id) {
       const c = state.contacts.find(x => x.id === id);
       if (!c) return;
       document.getElementById('cName').value = c.name || '';
       document.getElementById('cOrg').value = c.org || '';
       document.getElementById('cType').value = c.type || 'external';
+      document.getElementById('cCategory').value = c.category || '';
     } else {
-      ['cName', 'cOrg'].forEach(id => document.getElementById(id).value = '');
+      ['cName', 'cOrg', 'cCategory'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('cType').value = 'external';
     }
     document.getElementById('contactModal').classList.add('show');
@@ -2263,6 +2528,7 @@ ${text}`;
       name,
       org: document.getElementById('cOrg').value.trim(),
       type: document.getElementById('cType').value,
+      category: document.getElementById('cCategory').value.trim(),
       updated_at: now(),
     };
     let contact;
@@ -2277,8 +2543,7 @@ ${text}`;
     }
     saveState();
     renderContactList();
-    if (currentView === 'mtg') renderCandidates();
-    refreshAssigneeOptions();
+    if (currentView === 'mtg') { renderCategoryFilters(); renderCandidates(); }
     closeContactModal();
     showToast('保存しました');
   }
@@ -2291,12 +2556,12 @@ ${text}`;
     selectedIds.delete(editingContactId);
     saveState();
     renderContactList();
-    if (currentView === 'mtg') { renderSelected(); renderCandidates(); }
-    refreshAssigneeOptions();
+    if (currentView === 'mtg') { renderSelected(); renderCategoryFilters(); renderCandidates(); }
     closeContactModal();
     showToast('削除しました');
   }
 
+  // ===== CSV =====
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length === 0) return [];
@@ -2315,16 +2580,13 @@ ${text}`;
         const t = row.type.toLowerCase();
         if (t.includes('社内') || t === 'internal' || t === 'in') row.type = 'internal';
         else row.type = 'external';
-      } else {
-        row.type = 'external';
-      }
+      } else { row.type = 'external'; }
       return row;
     }).filter(r => r.name);
   }
   function parseCSVLine(line) {
     const result = [];
-    let cur = '';
-    let inQuotes = false;
+    let cur = ''; let inQuotes = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
@@ -2344,16 +2606,12 @@ ${text}`;
         const rows = parseCSV(e.target.result);
         if (rows.length === 0) { showToast('有効な行がありません', true); return; }
         csvPendingRows = rows.map(r => {
-          const existing = state.contacts.find(c =>
-            c.name === r.name && (c.org || '') === (r.org || '')
-          );
+          const existing = state.contacts.find(c => c.name === r.name && (c.org || '') === (r.org || ''));
           return { ...r, status: existing ? 'duplicate' : 'new' };
         });
         renderCSVPreview();
         document.getElementById('csvPreviewModal').classList.add('show');
-      } catch (err) {
-        showToast('CSV解析失敗: ' + err.message, true);
-      }
+      } catch (err) { showToast('CSV解析失敗: ' + err.message, true); }
     };
     reader.readAsText(file, 'utf-8');
     event.target.value = '';
@@ -2361,7 +2619,7 @@ ${text}`;
   function renderCSVPreview() {
     const newCount = csvPendingRows.filter(r => r.status === 'new').length;
     const dupCount = csvPendingRows.filter(r => r.status === 'duplicate').length;
-    document.getElementById('csvPreviewSub').textContent = `${csvPendingRows.length}件中 ${newCount}件が新規、${dupCount}件が既存(スキップ)`;
+    document.getElementById('csvPreviewSub').textContent = `${csvPendingRows.length}件中 ${newCount}件が新規、${dupCount}件が既存（スキップ）`;
     const t = document.getElementById('csvPreviewTable');
     t.innerHTML = `<thead><tr><th>状態</th><th>名前</th><th>会社</th><th>区分</th></tr></thead><tbody>` +
       csvPendingRows.slice(0, 100).map(r => `
@@ -2371,30 +2629,22 @@ ${text}`;
           <td>${esc(r.org || '')}</td>
           <td>${r.type === 'internal' ? '社内' : '社外'}</td>
         </tr>
-      `).join('') +
-      `</tbody>`;
+      `).join('') + `</tbody>`;
   }
-  function closeCSVPreview() {
-    document.getElementById('csvPreviewModal').classList.remove('show');
-    csvPendingRows = [];
-  }
+  function closeCSVPreview() { document.getElementById('csvPreviewModal').classList.remove('show'); csvPendingRows = []; }
   async function confirmCSVImport() {
     const newRows = csvPendingRows.filter(r => r.status === 'new');
     for (const r of newRows) {
       const contact = {
-        id: uid(),
-        name: r.name, org: r.org || '', type: r.type,
+        id: uid(), name: r.name, org: r.org || '', type: r.type,
         created_at: now(), updated_at: now(),
       };
       state.contacts.push(contact);
-      if (state.settings.sheetsEnabled) {
-        await pushContactToSheets(contact, 'create_contact');
-      }
+      if (state.settings.sheetsEnabled) await pushContactToSheets(contact, 'create_contact');
     }
     saveState();
     renderContactList();
     if (currentView === 'mtg') renderCandidates();
-    refreshAssigneeOptions();
     closeCSVPreview();
     showToast(`${newRows.length}件をインポート`);
   }
@@ -2410,12 +2660,11 @@ ${text}`;
     a.download = `contacts_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('CSVエクスポート完了');
+    showToast('CSV出力完了');
   }
 
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
+  // ===== UTILITIES =====
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function escAttr(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
   function showToast(msg, isError = false) {
     document.getElementById('toastMsg').textContent = msg;
@@ -2426,13 +2675,26 @@ ${text}`;
     window._toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
+  // ===== INIT =====
   document.getElementById('date').valueAsDate = new Date();
+  // 開催時刻のデフォルト: 次の15分刻みからスタート、1時間枠
+  (function setDefaultScheduledTimes() {
+    const now = new Date();
+    const mins = now.getMinutes();
+    const next15 = Math.ceil((mins + 1) / 15) * 15;
+    now.setMinutes(next15, 0, 0);
+    const end = new Date(now.getTime() + 60 * 60 * 1000);
+    const fmt = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    document.getElementById('scheduledStart').value = fmt(now);
+    document.getElementById('scheduledEnd').value = fmt(end);
+  })();
   loadState();
   updateAllStatus();
   renderSelected();
+  renderCategoryFilters();
   renderCandidates();
-  refreshAssigneeOptions();
-  addTodo();
+  transitionPhase('prep');
+  checkResume();
 
   ['contactModal', 'vaultModal', 'integrationsModal', 'csvPreviewModal'].forEach(id => {
     document.getElementById(id).addEventListener('click', e => {
